@@ -11,127 +11,44 @@ import {
 } from './types';
 
 /**
- * Stripe clipping algorithm. Clip features between two vertical or horizontal
- * axis-parallel lines:
- *     |        |
- *  ___|___     |     /
- * /   |   \____|____/
- *     |        |
- *
- * @param k1 Lower axis boundary
- * @param k2 Upper axis boundary
- * @param minAll Minimum coordinate for all features
- * @param maxall Maximum coordinate for all features
+ * @param z Zoom
  */
-export function clip(
-   features: MemFeature[],
-   scale: number,
-   k1: number,
-   k2: number,
-   axis: Axis,
-   minAll: number,
-   maxAll: number,
-   options: Partial<Options>
-): MemFeature[] | null {
-   k1 /= scale;
-   k2 /= scale;
+function addPoint(out: MemLine, x: number, y: number, z: number) {
+   out.push(x, y, z);
+}
 
-   if (minAll >= k1 && maxAll < k2) {
-      // all features within bounds — trivial accept
-      return features;
-   } else if (maxAll < k1 || minAll >= k2) {
-      // all features outside bounds — trivial reject
-      return null;
-   }
+function intersectX(
+   out: number[],
+   ax: number,
+   ay: number,
+   bx: number,
+   by: number,
+   x: number
+): number {
+   const t = (x - ax) / (bx - ax);
+   addPoint(out, x, ay + (by - ay) * t, 1);
+   return t;
+}
 
-   const clipped: MemFeature[] = [];
+function intersectY(
+   out: number[],
+   ax: number,
+   ay: number,
+   bx: number,
+   by: number,
+   y: number
+): number {
+   const t = (y - ay) / (by - ay);
+   addPoint(out, ax + (bx - ax) * t, y, 1);
+   return t;
+}
 
-   forEach(features, f => {
-      /** Original geometry */
-      const from = f.geometry;
-      const min = axis === Axis.Horizontal ? f.minX : f.minY;
-      const max = axis === Axis.Horizontal ? f.maxX : f.maxY;
-
-      let type = f.type;
-
-      if (min >= k1 && max < k2) {
-         // trivial accept
-         clipped.push(f);
-         return;
-      } else if (max < k1 || min >= k2) {
-         // trivial reject
-         return;
-      }
-
-      /** Clipped geometry */
-      let to: MemGeometry = [];
-
-      switch (type) {
-         case Type.Point:
-         case Type.MultiPoint:
-            clipPoints(from as MemLine, to as MemLine, k1, k2, axis);
-            break;
-         case Type.Line:
-            clipLine(
-               from as MemLine,
-               to as MemLine[],
-               k1,
-               k2,
-               axis,
-               false,
-               options.lineMetrics ?? false
-            );
-            break;
-         case Type.Polygon:
-         case Type.MultiLine:
-            clipLines(
-               from as MemLine[],
-               to as MemLine[],
-               k1,
-               k2,
-               axis,
-               type == Type.Polygon
-            );
-            break;
-         case Type.MultiPolygon:
-            forEach(from as MemPolygon[], p => {
-               const newPolygon: MemPolygon = [];
-               clipLines(p, newPolygon, k1, k2, axis, true);
-               if (newPolygon.length) {
-                  (to as MemPolygon[]).push(newPolygon);
-               }
-            });
-            break;
-      }
-
-      if (to.length) {
-         if (options.lineMetrics && type === Type.Line) {
-            for (const line of to as MemLine[]) {
-               // to is line array for `Type.Line` because original line may
-               // be sliced into multiple
-               clipped.push(createFeature(f.id, type, line, f.tags));
-            }
-            return;
-         }
-
-         if (type === Type.Line || type === Type.MultiLine) {
-            if (to.length === 1) {
-               type = Type.Line;
-               to = (to as MemLine[])[0];
-            } else {
-               type = Type.MultiLine;
-            }
-         }
-
-         if (type === Type.Point || type === Type.MultiPoint) {
-            type = to.length === 3 ? Type.Point : Type.MultiPoint;
-         }
-
-         clipped.push(createFeature(f.id, type, to, f.tags));
-      }
-   });
-
-   return clipped.length ? clipped : null;
+function newSlice(line: MemLine) {
+   const slice: MemLine = [];
+   slice.size = line.size;
+   slice.start = line.start;
+   slice.end = line.end;
+   return slice;
 }
 
 function clipPoints(
@@ -185,7 +102,7 @@ function clipLine(
       let exited = false;
 
       if (trackMetrics) {
-         segLen = Math.sqrt(Math.pow(ax - bx, 2) + Math.pow(ay - by, 2));
+         segLen = Math.sqrt((ax - bx) ** 2 + (ay - by) ** 2);
       }
 
       if (a < k1) {
@@ -253,17 +170,9 @@ function clipLine(
    }
 
    // add the final slice
-   if (slice.length) {
+   if (slice.length > 0) {
       newLine.push(slice);
    }
-}
-
-function newSlice(line: MemLine) {
-   const slice: MemLine = [];
-   slice.size = line.size;
-   slice.start = line.start;
-   slice.end = line.end;
-   return slice;
 }
 
 function clipLines(
@@ -280,34 +189,129 @@ function clipLines(
 }
 
 /**
- * @param z Zoom
+ * Stripe clipping algorithm. Clip features between two vertical or horizontal
+ * axis-parallel lines:
+ *     |        |
+ *  ___|___     |     /
+ * /   |   \____|____/
+ *     |        |
+ *
+ * @param k1 Lower axis boundary
+ * @param k2 Upper axis boundary
+ * @param minAll Minimum coordinate for all features
+ * @param maxall Maximum coordinate for all features
  */
-function addPoint(out: MemLine, x: number, y: number, z: number) {
-   out.push(x, y, z);
-}
+export function clip(
+   features: MemFeature[],
+   scale: number,
+   k1: number,
+   k2: number,
+   axis: Axis,
+   minAll: number,
+   maxAll: number,
+   options: Partial<Options>
+): MemFeature[] | null {
+   k1 /= scale;
+   k2 /= scale;
 
-function intersectX(
-   out: number[],
-   ax: number,
-   ay: number,
-   bx: number,
-   by: number,
-   x: number
-): number {
-   const t = (x - ax) / (bx - ax);
-   addPoint(out, x, ay + (by - ay) * t, 1);
-   return t;
-}
+   if (minAll >= k1 && maxAll < k2) {
+      // all features within bounds — trivial accept
+      return features;
+   }
+   if (maxAll < k1 || minAll >= k2) {
+      // all features outside bounds — trivial reject
+      return null;
+   }
 
-function intersectY(
-   out: number[],
-   ax: number,
-   ay: number,
-   bx: number,
-   by: number,
-   y: number
-): number {
-   const t = (y - ay) / (by - ay);
-   addPoint(out, ax + (bx - ax) * t, y, 1);
-   return t;
+   const clipped: MemFeature[] = [];
+
+   forEach(features, f => {
+      /** Original geometry */
+      const from = f.geometry;
+      const min = axis === Axis.Horizontal ? f.minX : f.minY;
+      const max = axis === Axis.Horizontal ? f.maxX : f.maxY;
+
+      let type = f.type;
+
+      if (min >= k1 && max < k2) {
+         // trivial accept
+         clipped.push(f);
+         return;
+      }
+      if (max < k1 || min >= k2) {
+         // trivial reject
+         return;
+      }
+
+      /** Clipped geometry */
+      let to: MemGeometry = [];
+
+      switch (type) {
+         case Type.Point:
+         case Type.MultiPoint:
+            clipPoints(from as MemLine, to as MemLine, k1, k2, axis);
+            break;
+         case Type.Line:
+            clipLine(
+               from as MemLine,
+               to as MemLine[],
+               k1,
+               k2,
+               axis,
+               false,
+               options.lineMetrics ?? false
+            );
+            break;
+         case Type.Polygon:
+         case Type.MultiLine:
+            clipLines(
+               from as MemLine[],
+               to as MemLine[],
+               k1,
+               k2,
+               axis,
+               type == Type.Polygon
+            );
+            break;
+         case Type.MultiPolygon:
+            forEach(from as MemPolygon[], p => {
+               const newPolygon: MemPolygon = [];
+               clipLines(p, newPolygon, k1, k2, axis, true);
+               if (newPolygon.length > 0) {
+                  (to as MemPolygon[]).push(newPolygon);
+               }
+            });
+            break;
+         default:
+            break;
+      }
+
+      if (to.length > 0) {
+         if (options.lineMetrics && type === Type.Line) {
+            forEach(to as MemLine[], line => {
+               // to is line array for `Type.Line` because original line may
+               // be sliced into multiple
+               clipped.push(createFeature(f.id, type, line, f.tags));
+            });
+            return;
+         }
+
+         if (type === Type.Line || type === Type.MultiLine) {
+            if (to.length === 1) {
+               type = Type.Line;
+               to = (to as MemLine[])[0];
+            } else {
+               type = Type.MultiLine;
+            }
+         }
+
+         if (type === Type.Point || type === Type.MultiPoint) {
+            type = to.length === 3 ? Type.Point : Type.MultiPoint;
+         }
+
+         clipped.push(createFeature(f.id, type, to, f.tags));
+      }
+   });
+
+   return clipped.length > 0 ? clipped : null;
 }

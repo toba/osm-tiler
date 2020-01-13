@@ -6,10 +6,6 @@ import { transformTile as transform } from './transform';
 import { createTile } from './tile';
 import { Options, Tile, LogLevel, Coordinate, MemFeature } from './types';
 
-export default function geojsonvt(data: GeoJSON, options: Options) {
-   return new GeoJSONVT(data, options);
-}
-
 const defaultOptions: Options = {
    maxZoom: 14,
    indexMaxZoom: 5,
@@ -21,6 +17,25 @@ const defaultOptions: Options = {
    generateID: false,
    debug: LogLevel.None
 };
+
+/**
+ * Create a unique ID based on tile coordinate.
+ */
+const toID = (z: number, x: number, y: number) => ((1 << z) * y + x) * 32 + z;
+
+type Hash = { [key: string]: any };
+
+/**
+ * Copy all values, without regard for `null` or `undefined`, from `src` to
+ * `dest` and return `dest`.
+ */
+function extend(dest: Hash, src: Hash): Hash {
+   Object.keys(src).forEach(key => {
+      dest[key] = src[key];
+   });
+
+   return dest;
+}
 
 class GeoJSONVT {
    options: Options = Object.create(defaultOptions);
@@ -40,7 +55,7 @@ class GeoJSONVT {
       if (options.maxZoom < 0 || options.maxZoom > 24) {
          throw new Error('maxZoom should be in the 0-24 range');
       }
-      if (options.promoteID && options.generateID) {
+      if (options.promoteID !== undefined && options.generateID) {
          throw new Error('promoteId and generateId cannot be used together.');
       }
 
@@ -68,12 +83,12 @@ class GeoJSONVT {
       features = wrap(features, options);
 
       // start slicing from the top tile down
-      if (features.length) {
+      if (features.length > 0) {
          this.splitTile(features, 0, 0, 0);
       }
 
-      if (debug) {
-         if (features.length)
+      if (debug > LogLevel.None) {
+         if (features.length > 0)
             console.log(
                'features: %d, points: %d',
                this.tiles[0].numFeatures,
@@ -123,12 +138,13 @@ class GeoJSONVT {
          const id = toID(z, x, y);
          let tile = this.tiles[id];
 
-         if (!tile) {
+         if (tile === undefined) {
             if (debug > LogLevel.Basic) {
                console.time('creation');
             }
 
-            tile = this.tiles[id] = createTile(features, z, x, y, options);
+            tile = createTile(features, z, x, y, options);
+            this.tiles[id] = tile;
             this.tileCoords.push({ z, x, y });
 
             if (debug > LogLevel.None) {
@@ -199,72 +215,35 @@ class GeoJSONVT {
          let tr = null;
          /** Bottom right */
          let br = null;
-
-         let left = clip(
-            features,
-            z2,
-            x - k1,
-            x + k3,
-            0,
-            tile.minX,
-            tile.maxX,
+         // prettier-ignore
+         let left = clip(features, z2, x - k1, x + k3, 0, tile.minX, tile.maxX,
             options
          );
-         let right = clip(
-            features,
-            z2,
-            x + k2,
-            x + k4,
-            0,
-            tile.minX,
-            tile.maxX,
+         // prettier-ignore
+         let right = clip(features, z2, x + k2, x + k4, 0, tile.minX, tile.maxX,
             options
          );
          features = null;
 
          if (left !== null) {
-            tl = clip(
-               left,
-               z2,
-               y - k1,
-               y + k3,
-               1,
-               tile.minY,
-               tile.maxY,
+            // prettier-ignore
+            tl = clip(left, z2, y - k1, y + k3, 1, tile.minY, tile.maxY,
                options
             );
-            bl = clip(
-               left,
-               z2,
-               y + k2,
-               y + k4,
-               1,
-               tile.minY,
-               tile.maxY,
+            // prettier-ignore
+            bl = clip(left, z2, y + k2, y + k4, 1, tile.minY, tile.maxY,
                options
             );
             left = null;
          }
 
          if (right !== null) {
-            tr = clip(
-               right,
-               z2,
-               y - k1,
-               y + k3,
-               1,
-               tile.minY,
-               tile.maxY,
+            // prettier-ignore
+            tr = clip(right, z2, y - k1, y + k3, 1, tile.minY, tile.maxY,
                options
             );
-            br = clip(
-               right,
-               z2,
-               y + k2,
-               y + k4,
-               1,
-               tile.minY,
-               tile.maxY,
+            // prettier-ignore
+            br = clip(right, z2, y + k2, y + k4, 1, tile.minY, tile.maxY,
                options
             );
             right = null;
@@ -274,10 +253,10 @@ class GeoJSONVT {
             console.timeEnd('clipping');
          }
 
-         stack.push(tl || [], z + 1, x * 2, y * 2);
-         stack.push(bl || [], z + 1, x * 2, y * 2 + 1);
-         stack.push(tr || [], z + 1, x * 2 + 1, y * 2);
-         stack.push(br || [], z + 1, x * 2 + 1, y * 2 + 1);
+         stack.push(tl ?? [], z + 1, x * 2, y * 2);
+         stack.push(bl ?? [], z + 1, x * 2, y * 2 + 1);
+         stack.push(tr ?? [], z + 1, x * 2 + 1, y * 2);
+         stack.push(br ?? [], z + 1, x * 2 + 1, y * 2 + 1);
       }
    }
 
@@ -297,7 +276,8 @@ class GeoJSONVT {
       x = (x + z2) & (z2 - 1); // wrap tile x coordinate
 
       const id = toID(z, x, y);
-      if (this.tiles[id]) {
+
+      if (this.tiles[id] !== undefined) {
          return transform(this.tiles[id], extent);
       }
 
@@ -312,8 +292,8 @@ class GeoJSONVT {
 
       while (!parent && z0 > 0) {
          z0--;
-         x0 = x0 >> 1;
-         y0 = y0 >> 1;
+         x0 >>= 1;
+         y0 >>= 1;
          parent = this.tiles[toID(z0, x0, y0)];
       }
 
@@ -332,22 +312,12 @@ class GeoJSONVT {
          console.timeEnd('drilling down');
       }
 
-      return this.tiles[id] ? transform(this.tiles[id], extent) : null;
+      return this.tiles[id] !== undefined
+         ? transform(this.tiles[id], extent)
+         : null;
    }
 }
 
-/**
- * Create a unique ID based on tile coordinate.
- */
-const toID = (z: number, x: number, y: number) => ((1 << z) * y + x) * 32 + z;
-
-/**
- * Copy all values, without regard for `null` or `undefined`, from `src` to
- * `dest` and return `dest`.
- */
-function extend<T extends Object>(dest: T, src: T): T {
-   for (const i in src) {
-      dest[i] = src[i];
-   }
-   return dest;
+export default function geojsonvt(data: GeoJSON, options: Options) {
+   return new GeoJSONVT(data, options);
 }

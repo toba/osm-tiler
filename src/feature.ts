@@ -1,27 +1,15 @@
 import { GeoJsonType as Type } from '@toba/map';
-import { MemFeature, MemLine, MemPolygon, MemGeometry } from './types';
 import { GeoJsonProperties, GeoJsonTypes } from 'geojson';
 import { forEach } from '@toba/node-tools';
+import { MemFeature, MemLine, MemPolygon, MemGeometry } from './types';
 
-export function createFeature(
-   id: string | number | undefined,
-   type: GeoJsonTypes,
-   geom: MemGeometry,
-   tags: GeoJsonProperties
-) {
-   const feature: MemFeature = {
-      id, //id: id == null ? null : id,
-      type,
-      geometry: geom,
-      tags,
-      minX: Infinity,
-      minY: Infinity,
-      maxX: -Infinity,
-      maxY: -Infinity
-   };
-   calcBBox(feature);
-
-   return feature;
+function calcLineBBox(feature: MemFeature, line: MemLine) {
+   for (let i = 0; i < line.length; i += 3) {
+      feature.minX = Math.min(feature.minX, line[i]);
+      feature.minY = Math.min(feature.minY, line[i + 1]);
+      feature.maxX = Math.max(feature.maxX, line[i]);
+      feature.maxY = Math.max(feature.maxY, line[i + 1]);
+   }
 }
 
 function calcBBox(feature: MemFeature) {
@@ -47,14 +35,28 @@ function calcBBox(feature: MemFeature) {
             calcLineBBox(feature, p[0]);
          });
          break;
+      default:
+         break;
    }
 }
 
-function calcLineBBox(feature: MemFeature, line: MemLine) {
-   for (let i = 0; i < line.length; i += 3) {
-      feature.minX = Math.min(feature.minX, line[i]);
-      feature.minY = Math.min(feature.minY, line[i + 1]);
-      feature.maxX = Math.max(feature.maxX, line[i]);
-      feature.maxY = Math.max(feature.maxY, line[i + 1]);
-   }
+export function createFeature(
+   id: string | number | undefined,
+   type: GeoJsonTypes,
+   geom: MemGeometry,
+   tags: GeoJsonProperties
+) {
+   const feature: MemFeature = {
+      id, //id: id == null ? null : id,
+      type,
+      geometry: geom,
+      tags,
+      minX: Infinity,
+      minY: Infinity,
+      maxX: -Infinity,
+      maxY: -Infinity
+   };
+   calcBBox(feature);
+
+   return feature;
 }

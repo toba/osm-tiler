@@ -1,16 +1,48 @@
 /**
+ * Square distance from a point to a segment.
+ */
+function getSqSegDist(
+   px: number,
+   py: number,
+   x: number,
+   y: number,
+   bx: number,
+   by: number
+): number {
+   let dx = bx - x;
+   let dy = by - y;
+
+   if (dx !== 0 || dy !== 0) {
+      const t = ((px - x) * dx + (py - y) * dy) / (dx * dx + dy * dy);
+
+      if (t > 1) {
+         x = bx;
+         y = by;
+      } else if (t > 0) {
+         x += dx * t;
+         y += dy * t;
+      }
+   }
+
+   dx = px - x;
+   dy = py - y;
+
+   return dx * dx + dy * dy;
+}
+
+/**
  * Calculate simplification data using optimized Douglas-Peucker algorithm.
  */
 export function simplify(
    coords: number[],
    first: number,
-   last: number = 0,
-   sqTolerance: number = 0
+   last = 0,
+   sqTolerance = 0
 ) {
    let maxSqDist = sqTolerance;
    const mid = (last - first) >> 1;
    let minPosToMid = last - first;
-   let index: number | undefined = undefined;
+   let index: number | undefined;
 
    const ax = coords[first];
    const ay = coords[first + 1];
@@ -46,34 +78,4 @@ export function simplify(
          simplify(coords, index, last, sqTolerance);
       }
    }
-}
-
-// square distance from a point to a segment
-function getSqSegDist(
-   px: number,
-   py: number,
-   x: number,
-   y: number,
-   bx: number,
-   by: number
-): number {
-   let dx = bx - x;
-   let dy = by - y;
-
-   if (dx !== 0 || dy !== 0) {
-      const t = ((px - x) * dx + (py - y) * dy) / (dx * dx + dy * dy);
-
-      if (t > 1) {
-         x = bx;
-         y = by;
-      } else if (t > 0) {
-         x += dx * t;
-         y += dy * t;
-      }
-   }
-
-   dx = px - x;
-   dy = py - y;
-
-   return dx * dx + dy * dy;
 }

@@ -1,6 +1,5 @@
 import { GeoJsonType as Type } from '@toba/map';
 import { forEach } from '@toba/node-tools';
-import { GeoJsonProperties } from 'geojson';
 import {
    Options,
    MemFeature,
@@ -134,19 +133,20 @@ function addFeature(
    }
 
    if (simplified.length > 0) {
-      let tags: GeoJsonProperties = feature.tags ?? null;
+      let tags = feature.tags;
 
       if (type === Type.Line && options.lineMetrics) {
          const line = geom as MemLine;
          const size = line.size ?? 1;
          tags = {};
 
-         Object.keys(feature).forEach(key => {
-            tags[key] = feature.tags[key];
-         });
-
-         tags.mapbox_clip_start = line.start ?? 0 / size;
-         tags.mapbox_clip_end = line.end ?? 0 / size;
+         if (feature.tags !== null) {
+            Object.keys(feature.tags).forEach((key: string) => {
+               tags![key] = feature.tags![key];
+            });
+         }
+         tags['mapbox_clip_start'] = line.start ?? 0 / size;
+         tags['mapbox_clip_end'] = line.end ?? 0 / size;
       }
 
       const tileFeature: TileFeature = {
