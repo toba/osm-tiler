@@ -1,0 +1,12 @@
+{
+   "extends": ["./node_modules/@toba/develop/.eslintrc"],
+   "rules": {
+      "no-console": "off",
+      "no-continue": "off",
+      "no-param-reassign": "off"
+   },
+   "env": {
+      "browser": true,
+      "node": true
+   }
+}

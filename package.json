@@ -1,0 +1,41 @@
+{
+   "name": "@toba/osm-tiler",
+   "description": "Toba OSM Tiler",
+   "version": "1.0.0",
+   "private": false,
+   "publishConfig": {
+      "access": "public"
+   },
+   "main": "cjs/index.js",
+   "module": "esm/index.js",
+   "types": "esm/index.d.ts",
+   "files": [
+      "esm",
+      "cjs"
+   ],
+   "author": {
+      "name": "Jason Abbott"
+   },
+   "license": "MIT",
+   "scripts": {
+      "build:esm": "./node_modules/.bin/tsc --project ./node_modules/@toba/develop/tsconfig.esm.json",
+      "build:cjs": "./node_modules/.bin/tsc --project ./node_modules/@toba/develop/tsconfig.cjs-min.json",
+      "prepublishOnly": "npm run build:esm & npm run build:cjs",
+      "test": "jest --coverage"
+   },
+   "devDependencies": {
+      "@toba/develop": "^6.7.14",
+      "@toba/test": "^4.1.17"
+   },
+   "repository": {
+      "type": "git",
+      "url": "https://github.com/toba/osm-router"
+   },
+   "#": "https://github.com/nodejs/node-gyp/wiki/Updating-npm's-bundled-node-gyp",
+   "dependencies": {
+      "@toba/map": "^2.6.2",
+      "@toba/osm-models": "^1.0.4",
+      "@toba/tools": "^6.13.3",
+      "@types/geojson": "^7946.0.7"
+   }
+}
