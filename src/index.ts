@@ -44,7 +44,7 @@ class GeoJSONVT {
    total: number;
    stats: { [key: string]: number };
 
-   constructor(data: GeoJSON, options: Options) {
+   constructor(data: GeoJSON, options: Partial<Options>) {
       extend(this.options, options);
 
       const debug = this.options.debug;
@@ -52,7 +52,7 @@ class GeoJSONVT {
       if (debug > LogLevel.None) {
          console.time('preprocess data');
       }
-      if (options.maxZoom < 0 || options.maxZoom > 24) {
+      if (this.options.maxZoom < 0 || this.options.maxZoom > 24) {
          throw new Error('maxZoom should be in the 0-24 range');
       }
       if (options.promoteID !== undefined && options.generateID) {
@@ -60,7 +60,7 @@ class GeoJSONVT {
       }
 
       // projects and adds simplification info
-      let features = convert(data, options);
+      let features = convert(data, this.options);
 
       // tiles and tileCoords are part of the public API
       this.tiles = {};
@@ -80,7 +80,7 @@ class GeoJSONVT {
       }
 
       // wraps features (ie extreme west and extreme east)
-      features = wrap(features, options);
+      features = wrap(features, this.options);
 
       // start slicing from the top tile down
       if (features.length > 0) {
@@ -260,6 +260,10 @@ class GeoJSONVT {
       }
    }
 
+   /**
+    *
+    * @param z Zoom
+    */
    getTile(z: number, x: number, y: number): Tile | null {
       z = +z;
       x = +x;
@@ -318,6 +322,5 @@ class GeoJSONVT {
    }
 }
 
-export default function geojsonvt(data: GeoJSON, options: Options) {
-   return new GeoJSONVT(data, options);
-}
+export const geojsonvt = (data: GeoJSON, options: Partial<Options> = {}) =>
+   new GeoJSONVT(data, options);

@@ -179,5 +179,5 @@ test('clips points', () => {
 
    const clipped = clip([f1, f2], 1, k1, k2, a, -Infinity, Infinity, {});
 
-   expect(clipped).toEqual(out1);
+   expect(clipped).toEqual([out1]);
 });
