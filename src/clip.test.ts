@@ -25,11 +25,12 @@ const copy = (
    minY = f.minY,
    maxX = f.maxX,
    maxY = f.maxY,
+   type = f.type,
    geometry: MemGeometry
 ): MemFeature => ({
    id: undefined,
    geometry,
-   type: f.type,
+   type,
    tags: f.tags,
    minX,
    minY,
@@ -37,7 +38,7 @@ const copy = (
    maxY
 });
 
-it('clips polylines', t => {
+it('clips polylines', () => {
    const k1 = 10;
    const k2 = 40;
    const a = Axis.Horizontal;
@@ -60,15 +61,15 @@ it('clips polylines', t => {
       maxX: 50,
       maxY: 10
    };
-   const out1 = copy(line1, k1, 0, k2, 60, [
+   const out1 = copy(line1, k1, 0, k2, 60, Type.MultiLine, [
       [k1, 0, 1, 40, 0, 1],
       [k2, 10, 1, 20, 10, 0, 20, 20, 0, 30, 20, 0, 30, 30, 0, 40, 30, 1],
       [k2, 40, 1, 25, 40, 0, 25, 50, 0, 10, 50, 1],
       [k1, 60, 1, 25, 60, 0]
    ]);
-   const out2 = copy(line2, k1, 0, k2, 10, [
-      [k2, 0, 1, 40, 0, 1],
-      [k2, 10, 1, 10, 10, 1]
+   const out2 = copy(line2, k1, 0, k2, 10, Type.MultiLine, [
+      [k1, 0, 1, k2, 0, 1],
+      [k2, k1, 1, k1, k1, 1]
    ]);
 
    const clipped = clip([line1, line2], 1, k1, k2, a, -Infinity, Infinity, {});
@@ -91,7 +92,7 @@ it('clips lines with line metrics on', () => {
    geom.start = 0;
    geom.end = geom.size;
 
-   const clipped = clip([makeLine(geom)], 1, k2, k2, a, -Infinity, Infinity, {
+   const clipped = clip([makeLine(geom)], 1, k1, k2, a, -Infinity, Infinity, {
       lineMetrics: true
    });
 
@@ -134,12 +135,12 @@ it('clips polygons', () => {
       maxY: 10
    };
    // prettier-ignore
-   const out1 = copy(poly1, k1, 0, k2, 60, [[
+   const out1 = copy(poly1, k1, 0, k2, 60, Type.Polygon, [[
       10,0,1,40,0,1,40,10,1,20,10,0,20,20,0,30,20,0,30,30,0,40,30,1,
       40,40,1,25,40,0,25,50,0,10,50,1,10,60,1,25,60,0,10,24,1,10,0,1
    ]]);
    // prettier-ignore
-   const out2 = copy(poly2, k1, 0, k2, 10, [[
+   const out2 = copy(poly2, k1, 0, k2, 10, Type.Polygon, [[
       10,0,1,40,0,1,40,10,1,10,10,1,10,0,1
    ]]);
 
@@ -148,7 +149,7 @@ it('clips polygons', () => {
    expect(clipped).toEqual([out1, out2]);
 });
 
-test('clips points', t => {
+test('clips points', () => {
    const k1 = 10;
    const k2 = 40;
    const a = Axis.Horizontal;
@@ -172,7 +173,7 @@ test('clips points', t => {
       maxY: 10
    };
    // prettier-ignore
-   const out1 = copy(f1, 20, k1, 30, 60, [
+   const out1 = copy(f1, 20, k1, 30, 60, Type.MultiPoint, [
       20,10,0,20,20,0,30,20,0,30,30,0,25,40,0,25,50,0,25,60,0
    ]);
 
