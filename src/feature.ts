@@ -44,13 +44,13 @@ export function createFeature(
    id: string | number | undefined,
    type: GeoJsonTypes,
    geom: MemGeometry,
-   tags: GeoJsonProperties
+   tags?: GeoJsonProperties
 ) {
    const feature: MemFeature = {
       id, //id: id == null ? null : id,
       type,
       geometry: geom,
-      tags,
+      tags: tags ?? null,
       minX: Infinity,
       minY: Infinity,
       maxX: -Infinity,

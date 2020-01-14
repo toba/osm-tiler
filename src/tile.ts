@@ -8,8 +8,7 @@ import {
    MemLine,
    MemPolygon,
    TileFeatureType,
-   TileLine,
-   TilePoint
+   TileLine
 } from './types';
 
 function eachPoint(
@@ -65,7 +64,6 @@ function addLine(
       if (tolerance === 0 || z > sqTolerance) {
          tile.numSimplified++;
          line.push(x, y);
-         //ring.push(geom[i], geom[i + 1]);
       }
       tile.numPoints++;
    });
@@ -141,7 +139,7 @@ function addFeature(
 
       if (type === Type.Line && options.lineMetrics) {
          const line = geom as MemLine;
-         const size = line.size ?? 1;
+         const size = line.size!;
          tags = {};
 
          if (feature.tags !== null) {
@@ -149,8 +147,8 @@ function addFeature(
                tags![key] = feature.tags![key];
             });
          }
-         tags['mapbox_clip_start'] = line.start ?? 0 / size;
-         tags['mapbox_clip_end'] = line.end ?? 0 / size;
+         tags['mapbox_clip_start'] = line.start! / size;
+         tags['mapbox_clip_end'] = line.end! / size;
       }
 
       const tileFeature: TileFeature = {
@@ -163,6 +161,7 @@ function addFeature(
                : TileFeatureType.Point,
          tags
       };
+
       if (feature.id !== undefined) {
          tileFeature.id = feature.id;
       }

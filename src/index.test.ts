@@ -2,143 +2,106 @@ import '@toba/test';
 import fs from 'fs';
 import path from 'path';
 import { Encoding } from '@toba/tools';
-import { GeoJsonType as Type } from '@toba/map';
+import { GeoJSON } from 'geojson';
 import { geojsonvt } from './index';
-import { LogLevel, TileFeatureType } from './types';
+import { Options, TileFeature } from './types';
 
 const getJSON = (name: string) =>
    JSON.parse(
-      fs.readFileSync(path.join(__dirname, '__mocks__', name), {
+      fs.readFileSync(path.join(__dirname, '__mocks__', name + '.json'), {
          encoding: Encoding.UTF8
       })
    );
 
-const square = [
-   {
-      geometry: [
-         [
-            [-64, 4160],
-            [-64, -64],
-            [4160, -64],
-            [4160, 4160],
-            [-64, 4160]
-         ]
-      ],
-      type: 3,
-      tags: { name: 'Pennsylvania', density: 284.3 },
-      id: '42'
+function genTiles(data: GeoJSON, options: Partial<Options> = {}) {
+   const index = geojsonvt(
+      data,
+      // eslint-disable-next-line
+      Object.assign(
+         {
+            indexMaxZoom: 0,
+            indexMaxPoints: 10000
+         },
+         options
+      )
+   );
+
+   const output: { [key: string]: TileFeature[] | undefined } = {};
+
+   Object.keys(index.tiles).forEach(id => {
+      const tile = index.tiles[id];
+      const z = tile.z;
+      output[`z${z}-${tile.x}-${tile.y}`] = index.getTile(
+         z,
+         tile.x,
+         tile.y
+      )?.features;
+   });
+
+   return output;
+}
+
+function testTiles(
+   inputFile: string,
+   expectedFile: string,
+   options: Partial<Options>
+) {
+   it(`full tiling test: ${expectedFile.replace('-tiles.json', '')}`, () => {
+      const tiles = genTiles(getJSON(inputFile), options);
+      expect(tiles).toEqual(getJSON(expectedFile));
+   });
+}
+
+testTiles('us-states', 'us-states-tiles', {
+   indexMaxZoom: 7,
+   indexMaxPoints: 200
+});
+testTiles('dateline', 'dateline-tiles', {
+   indexMaxZoom: 0,
+   indexMaxPoints: 10000
+});
+testTiles('dateline', 'dateline-metrics-tiles', {
+   indexMaxZoom: 0,
+   indexMaxPoints: 10000,
+   lineMetrics: true
+});
+testTiles('feature', 'feature-tiles', {
+   indexMaxZoom: 0,
+   indexMaxPoints: 10000
+});
+testTiles('collection', 'collection-tiles', {
+   indexMaxZoom: 0,
+   indexMaxPoints: 10000
+});
+testTiles('single-geom', 'single-geom-tiles', {
+   indexMaxZoom: 0,
+   indexMaxPoints: 10000
+});
+testTiles('ids', 'ids-promote-id-tiles', {
+   indexMaxZoom: 0,
+   promoteID: 'prop0'
+});
+testTiles('ids', 'ids-generate-id-tiles', {
+   indexMaxZoom: 0,
+   generateID: true
+});
+
+it('throws on invalid GeoJSON', () => {
+   let err: Error | undefined;
+
+   try {
+      genTiles({ type: 'Pologon' } as any);
+   } catch (e) {
+      err = e;
    }
-];
-
-it('getTile: us-states.json', () => {
-   const log = console.log;
-   console.log = function() {};
-   const index = geojsonvt(getJSON('us-states.json'), { debug: LogLevel.All });
-
-   expect(index.getTile(7, 37, 48)?.features).toEqual(
-      getJSON('us-states-z7-37-48.json')
-   );
-
-   expect(index.getTile(9, 148, 192)?.features).toEqual(square);
-   expect(index.getTile(11, 800, 400)).toBeNull();
-   expect(index.getTile(-5, 123.25, 400.25)).toBeNull();
-   expect(index.getTile(25, 200, 200)).toBeNull();
-
-   console.log = log;
-
-   expect(index.total).toBe(37);
+   expect(err).toBeDefined();
 });
 
-it('getTile: unbuffered tile left/right edges', () => {
-   const index = geojsonvt(
-      {
-         type: Type.Line,
-         coordinates: [
-            [0, 90],
-            [0, -90]
-         ]
-      },
-      {
-         buffer: 0
-      }
-   );
-
-   expect(index.getTile(2, 1, 1)).toBeNull();
-   expect(index.getTile(2, 2, 1)?.features).toEqual([
-      {
-         geometry: [
-            [
-               [0, 0],
-               [0, 4096]
-            ]
-         ],
-         type: TileFeatureType.Line,
-         tags: undefined
-      }
-   ]);
+it('empty geojson', () => {
+   expect(genTiles(getJSON('empty'))).toEqual({});
 });
 
-it('getTile: unbuffered tile top/bottom edges', () => {
-   const index = geojsonvt(
-      {
-         type: Type.Line,
-         coordinates: [
-            [-90, 66.51326044311188],
-            [90, 66.51326044311188]
-         ]
-      },
-      {
-         buffer: 0
-      }
-   );
-
-   expect(index.getTile(2, 1, 0)?.features).toEqual([
-      {
-         geometry: [
-            [
-               [0, 4096],
-               [4096, 4096]
-            ]
-         ],
-         type: TileFeatureType.Line,
-         tags: undefined
-      }
-   ]);
-   expect(index.getTile(2, 1, 1)?.features).toEqual([]);
-});
-
-it('getTile: polygon clipping on the boundary', () => {
-   const index = geojsonvt(
-      {
-         type: Type.Polygon,
-         coordinates: [
-            [
-               [42.1875, 57.32652122521708],
-               [47.8125, 57.32652122521708],
-               [47.8125, 54.16243396806781],
-               [42.1875, 54.16243396806781],
-               [42.1875, 57.32652122521708]
-            ]
-         ]
-      },
-      {
-         buffer: 1024
-      }
-   );
-
-   expect(index.getTile(5, 19, 9)?.features).toEqual([
-      {
-         geometry: [
-            [
-               [3072, 3072],
-               [5120, 3072],
-               [5120, 5120],
-               [3072, 5120],
-               [3072, 3072]
-            ]
-         ],
-         type: TileFeatureType.Polygon,
-         tags: undefined
-      }
-   ]);
+it('null geometry', () => {
+   // should ignore features with null geometry
+   expect(genTiles(getJSON('feature-null-geometry'))).toEqual({});
 });
