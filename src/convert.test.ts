@@ -33,6 +33,7 @@ const square = [
 it('getTile: us-states.json', () => {
    const log = console.log;
    console.log = () => {};
+   console.time = () => {};
    const index = geojsonvt(getJSON('us-states.json'), { debug: LogLevel.All });
 
    expect(index.getTile(7, 37, 48)?.features).toEqual(
