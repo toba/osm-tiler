@@ -1,9 +1,5 @@
 import { GeoJsonProperties, GeoJsonTypes } from 'geojson';
 
-export type Tags = { [key: string]: string | number };
-
-export type MemPoint = [number, number, number?];
-
 export type MemGeometry = MemLine | MemPolygon | MemPolygon[];
 
 export type MemPolygon = MemLine[];
@@ -109,12 +105,14 @@ export interface Tile {
    features: TileFeature[];
 }
 
-export type TileLine = number[];
+export type TilePoint = [number, number];
+
+export type TileLine = TilePoint[];
 
 export interface TileFeature {
    id?: string | number;
    type: TileFeatureType;
-   geometry: TileLine | TileLine[];
+   geometry: number[] | TileLine | TileLine[];
    tags: GeoJsonProperties;
 }
 

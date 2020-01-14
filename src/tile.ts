@@ -8,7 +8,8 @@ import {
    MemLine,
    MemPolygon,
    TileFeatureType,
-   TileLine
+   TileLine,
+   TilePoint
 } from './types';
 
 function eachPoint(
@@ -20,26 +21,28 @@ function eachPoint(
    }
 }
 
-function rewind(ring: TileLine, clockwise: boolean) {
+function rewind(line: number[], clockwise: boolean) {
    let area = 0;
 
-   for (let i = 0, len = ring.length, j = len - 2; i < len; j = i, i += 2) {
-      area += (ring[i] - ring[j]) * (ring[i + 1] + ring[j + 1]);
+   for (let i = 0, len = line.length, j = len - 2; i < len; j = i, i += 2) {
+      area += (line[i] - line[j]) * (line[i + 1] + line[j + 1]);
    }
+
    if (area > 0 === clockwise) {
-      for (let i = 0, len = ring.length; i < len / 2; i += 2) {
-         const x = ring[i];
-         const y = ring[i + 1];
-         ring[i] = ring[len - 2 - i];
-         ring[i + 1] = ring[len - 1 - i];
-         ring[len - 2 - i] = x;
-         ring[len - 1 - i] = y;
+      for (let i = 0, len = line.length; i < len / 2; i += 2) {
+         const x = line[i];
+         const y = line[i + 1];
+
+         line[i] = line[len - 2 - i];
+         line[i + 1] = line[len - 1 - i];
+         line[len - 2 - i] = x;
+         line[len - 1 - i] = y;
       }
    }
 }
 
 function addLine(
-   result: TileLine[],
+   out: number[][],
    geom: MemLine,
    tile: Tile,
    tolerance: number,
@@ -56,20 +59,21 @@ function addLine(
       return;
    }
 
-   const ring: number[] = [];
+   const line: number[] = [];
 
    eachPoint(geom, (x, y, z) => {
       if (tolerance === 0 || z > sqTolerance) {
          tile.numSimplified++;
-         ring.push(x, y);
+         line.push(x, y);
+         //ring.push(geom[i], geom[i + 1]);
       }
       tile.numPoints++;
    });
 
    if (isPolygon) {
-      rewind(ring, isOuter);
+      rewind(line, isOuter);
    }
-   result.push(ring);
+   out.push(line);
 }
 
 function addFeature(
@@ -80,20 +84,20 @@ function addFeature(
 ) {
    const geom = feature.geometry;
    const { type } = feature;
-   const simplified: TileLine | TileLine[] = [];
+   const simplified: number[] | TileLine = [];
 
    switch (type) {
       case Type.Point:
       case Type.MultiPoint:
          eachPoint(geom as MemLine, (x, y) => {
-            (simplified as TileLine).push(x, y);
+            (simplified as number[]).push(x, y);
             tile.numPoints++;
             tile.numSimplified++;
          });
          break;
       case Type.Line:
          addLine(
-            simplified as TileLine[],
+            simplified as TileLine,
             geom as MemLine,
             tile,
             tolerance,
@@ -105,7 +109,7 @@ function addFeature(
       case Type.Polygon:
          forEach(geom as MemPolygon, (line, i) =>
             addLine(
-               simplified as TileLine[],
+               simplified as TileLine,
                line,
                tile,
                tolerance,
@@ -118,7 +122,7 @@ function addFeature(
          forEach(geom as MemPolygon[], p =>
             forEach(p, (line, i) =>
                addLine(
-                  simplified as TileLine[],
+                  simplified as TileLine,
                   line,
                   tile,
                   tolerance,
@@ -172,8 +176,8 @@ function addFeature(
 export function createTile(
    features: MemFeature[],
    z: number,
-   tx: number,
-   ty: number,
+   x: number,
+   y: number,
    options: Options
 ): Tile {
    const tolerance =
@@ -187,8 +191,8 @@ export function createTile(
       numSimplified: 0,
       numFeatures: features.length,
       source: undefined,
-      x: tx,
-      y: ty,
+      x,
+      y,
       z,
       transformed: false,
       minX: 2,
@@ -200,10 +204,7 @@ export function createTile(
    forEach(features, f => {
       addFeature(tile, f, tolerance, options);
 
-      const { minX } = f;
-      const { minY } = f;
-      const { maxX } = f;
-      const { maxY } = f;
+      const { minX, minY, maxX, maxY } = f;
 
       if (minX < tile.minX) {
          tile.minX = minX;

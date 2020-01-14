@@ -1,7 +1,7 @@
 import { forEach } from '@toba/node-tools';
 import { Tile, TileFeatureType, TileLine } from './types';
 
-function eachPoint(line: TileLine, fn: (x: number, y: number) => void) {
+function eachPoint(line: number[], fn: (x: number, y: number) => void) {
    for (let i = 0; i < line.length; i += 2) {
       fn(line[i], line[i + 1]);
    }
@@ -41,16 +41,16 @@ export function transformTile(tile: Tile, extent: number): Tile {
       f.geometry = [];
 
       if (type === TileFeatureType.Point) {
-         eachPoint(geom as TileLine, (x, y) => {
+         eachPoint(geom as number[], (x, y) => {
             (f.geometry as TileLine).push(
-               ...transformPoint(x, y, extent, z2, tx, ty)
+               transformPoint(x, y, extent, z2, tx, ty)
             );
          });
       } else {
-         forEach(geom as TileLine[], line => {
+         forEach(geom as TileLine, line => {
             const ring: TileLine = [];
             eachPoint(line, (x: number, y: number) =>
-               ring.push(...transformPoint(x, y, extent, z2, tx, ty))
+               ring.push(transformPoint(x, y, extent, z2, tx, ty))
             );
             (f.geometry as TileLine[]).push(ring);
          });
