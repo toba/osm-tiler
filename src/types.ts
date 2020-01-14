@@ -129,3 +129,42 @@ export const enum TileFeatureType {
    /** From GeoJSON `Polygon` or `MultiPolygon` */
    Polygon = 3
 }
+
+export const enum VectorFeatureType {
+   Unknown = 'Unknown',
+   Point = 'Point',
+   Line = 'LineString',
+   Polygon = 'Polygon'
+}
+
+export interface VectorFeature {
+   properties: {};
+   extent: number;
+   type: number;
+
+   _geometry: number;
+   _keys: number;
+   _values: number;
+
+   loadGeometry(): number[][];
+   bbox(): [number, number, number, number];
+}
+
+/**
+ * @see https://github.com/mapbox/vector-tile-js/blob/master/lib/vectortilelayer.js
+ */
+export interface Layer {
+   version: number;
+   name: string;
+   extent: number;
+   length: number;
+   _keys: number[];
+   _values: number[];
+   _features: VectorFeature[];
+
+   feature(index: number): VectorFeature;
+}
+
+export interface VectorTile {
+   layers: { [name: string]: Layer };
+}

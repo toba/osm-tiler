@@ -9,6 +9,7 @@
 
 # Toba OSM Tiler
 
+https://github.com/mapbox/vt-pbf
+https://github.com/mapbox/vector-tile-spec/tree/master/2.1
+
 ## License
-
-
