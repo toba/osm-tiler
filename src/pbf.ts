@@ -1,5 +1,6 @@
 import PBF from 'pbf';
 import { VectorFeature, Layer, VectorTile } from './types';
+import {TileWrapper } from './tile-wrapper';
 
 interface Context {
    feature: VectorFeature;
@@ -13,29 +14,6 @@ export const enum Command {
     MoveTo = 1,
     LineTo = 2
 }
-
-/**
- * Serialized a geojson-vt-created tile to pbf.
- *
- * @param {Object} layers - An object mapping layer names to geojson-vt-created vector tile objects
- * @param {Object} [options] - An object specifying the vector-tile specification version and extent that were used to create `layers`.
- * @param {Number} [options.version=1] - Version of vector-tile spec used
- * @param {Number} [options.extent=4096] - Extent of the vector tile
- * @return {Buffer} uncompressed, pbf-serialized tile data
- */
-function fromGeojsonVt(layers: Layer[], options) {
-   options = options || {};
-   const l: Layer = {};
-
-   Object.keys(layers).forEach(k => {
-
-     l[k] = new GeoJSONWrapper(layers[k].features, options);
-      l[k].name = k;
-      l[k].version = options.version;
-      l[k].extent = options.extent;
-   }
-   return fromVectorTileJs({ layers: l });
-});
 
 function writeProperties(context: Context, pbf: PBF) {
    const feature = context.feature;
@@ -192,3 +170,26 @@ function fromVectorTileJs(tile: VectorTile): Uint8Array {
    writeTile(tile, out);
    return out.finish();
 }
+
+/**
+ * Serialized a geojson-vt-created tile to pbf.
+ *
+ * @param {Object} layers - An object mapping layer names to geojson-vt-created vector tile objects
+ * @param {Object} [options] - An object specifying the vector-tile specification version and extent that were used to create `layers`.
+ * @param {Number} [options.version=1] - Version of vector-tile spec used
+ * @param {Number} [options.extent=4096] - Extent of the vector tile
+ * @return {Buffer} uncompressed, pbf-serialized tile data
+ */
+function fromGeojsonVt(layers: {[key:string]: Layer}, options): Uint8Array {
+   options = options || {};
+   const l: Layer = {};
+
+   Object.keys(layers).forEach(k => {
+
+     l[k] = new TileWrapper(layers[k].features, options);
+      l[k].name = k;
+      l[k].version = options.version;
+      l[k].extent = options.extent;
+   }
+   return fromVectorTileJs({ layers: l });
+});
