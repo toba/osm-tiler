@@ -54,7 +54,7 @@ export interface Options {
    buffer: number;
    /** Name of a feature property to be promoted to `feature.id` */
    promoteID?: string;
-   /** Whether to generate feature IDs. Cannot be used with `promoteId`. */
+   /** Whether to generate feature IDs. Cannot be used with `promoteID`. */
    generateID: boolean;
    /** Whether to calculate line metrics */
    lineMetrics: boolean;
@@ -137,7 +137,11 @@ export const enum VectorFeatureType {
    Polygon = 'Polygon'
 }
 
+/**
+ * @see https://github.com/mapbox/vt-pbf/blob/master/lib/geojson_wrapper.js
+ */
 export interface VectorFeature {
+   id?: number;
    properties: {};
    extent: number;
    type: number;

@@ -45,15 +45,16 @@ const simplified = [
 
 it('simplifies points correctly with the given tolerance', () => {
    const coords: number[] = [];
+   const tolerance = 0.001;
 
    for (let i = 0; i < points.length; i++) {
       coords.push(points[i][0], points[i][1], 0);
    }
 
-   coords[2] = 1;
-   coords[coords.length - 1] = 1;
+   coords[2] = 1; // first zoom value
+   coords[coords.length - 1] = 1; // last zoom value
 
-   simplify(coords, 0, coords.length - 3, 0.001 * 0.001);
+   simplify(coords, 0, coords.length - 3, tolerance * tolerance);
 
    const result = [];
    for (let i = 0; i < coords.length; i += 3) {
@@ -72,7 +73,7 @@ it('does not throw max call stack error on bad long input', () => {
       coords.push(...[0.0, 0.0], ...[1.0, 0.0], ...[1.0, 1.0], ...[0.0, 1.0]);
    }
 
-   let caught: Error | undefined = undefined;
+   let caught: Error | undefined;
 
    try {
       simplify(coords, 2e-15);

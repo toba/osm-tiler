@@ -39,6 +39,7 @@ function convertPoint(coords: Position, out: MemLine) {
 }
 
 /**
+ * @param tolerance Simplification tolerance based on zoom level and extent
  * @param isPolygon Whether line is closed (start and end connect)
  */
 function convertLine(
@@ -85,6 +86,8 @@ function convertLine(
  * Multiple lines or polygons imply a feature described with concentric polygons
  * or "rings" that may be wound one way or the other to indicate addition or
  * substraction from the containing polygon.
+ * 
+ * @param tolerance Simplification tolerance based on zoom level and extent
  */
 function convertLines(
    rings: Position[][],
@@ -100,7 +103,7 @@ function convertLines(
 }
 
 /**
- * Convert `geojson` `Feature` to a `VectorFeature` and add to `features` list.
+ * Convert `geojson` `Feature` to a `MemFeature` and add to `features` list.
  */
 function convertFeature(
    features: MemFeature[],
