@@ -77,21 +77,30 @@ export interface VectorLayer {
    features: VectorFeature[];
 }
 
-export interface VectorTile {
-   layers: { [key: string]: VectorLayer };
-   // fields below are used only for tile processing -- they aren't serialized
-   // to the final tire
+/**
+ * Tile transformation status and metadata.
+ */
+export interface TransformStatus {
    pointCount: number;
    featureCount: number;
    simplifiedCount: number;
    x: number;
    y: number;
    z: number;
-   transformed: boolean;
+   complete: boolean;
    minX: number;
    minY: number;
    maxX: number;
    maxY: number;
+}
+
+export interface VectorTile {
+   layers: { [key: string]: VectorLayer };
+   /**
+    * `transform` properties are not part of the vector tile specification but
+    * are used to facilitate processing
+    */
+   transform: TransformStatus;
 }
 
 /**
@@ -100,4 +109,31 @@ export interface VectorTile {
 export const enum Axis {
    Horizontal,
    Vertical
+}
+
+/**
+ * Object specifying the vector-tile specification version and extent that were
+ * used to create `layers`.
+ */
+export interface Options {
+   /** Version of vector-tile spec used */
+   version: number;
+   /** Maximum zoom (`0-24`) to preserve detail on */
+   maxZoom: number;
+   /** Simplification tolerance (higher means simpler) */
+   tolerance: number;
+   /** Tile extent */
+   extent: number;
+   /** Tile buffer on each side */
+   buffer: number;
+   /** Name of a feature property to be promoted to `feature.id` */
+   promoteID?: string;
+   /** Whether to generate feature IDs. Cannot be used with `promoteID`. */
+   generateID: boolean;
+   /** Whether to calculate line metrics */
+   lineMetrics: boolean;
+   /** Maximum zoom in the tile index */
+   indexMaxZoom: number;
+   /** Maximum number of points per tile in the tile index */
+   indexMaxPoints: number;
 }

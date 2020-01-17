@@ -3,17 +3,6 @@ import { forEach } from '@toba/tools';
 import { Command, VectorFeature, VectorLayer, VectorTile, Type } from './types';
 
 /**
- * Object specifying the vector-tile specification version and extent that were
- * used to create `layers`.
- */
-export interface Options {
-   /** Version of vector-tile spec used */
-   version: number;
-   /** Extent of the vector tile */
-   extent: number;
-}
-
-/**
  * Layer context.
  */
 interface Context {
@@ -181,11 +170,11 @@ function writeTile(tile: VectorTile, pbf: ProtocolBuffer) {
  * Serialize a vector-tile-js-created tile to pbf
  * @return uncompressed, pbf-serialized tile data
  */
-function fromVectorTileJs(tile: VectorTile): Uint8Array {
-   const out = new ProtocolBuffer();
-   writeTile(tile, out);
-   return out.finish();
-}
+// function fromVectorTileJs(tile: VectorTile): Uint8Array {
+//    const out = new ProtocolBuffer();
+//    writeTile(tile, out);
+//    return out.finish();
+// }
 
 /**
  * Serialized a geojson-vt-created tile to pbf.

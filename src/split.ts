@@ -1,17 +1,35 @@
 import { forEach } from '@toba/tools';
-import { VectorTile, VectorLayer, VectorFeature } from './types';
+import {
+   VectorTile,
+   VectorLayer,
+   VectorFeature,
+   Options,
+   TransformStatus
+} from './types';
 
 const tileCache = new Map<number, VectorTile>();
 const usedCoord = new Set<{ z: number; x: number; y: number }>();
+
+const emptyTransform = (x = 0, y = 0, z = 0): TransformStatus => ({
+   pointCount: 0,
+   simplifiedCount: 0,
+   featureCount: 0,
+   x,
+   y,
+   z,
+   complete: false,
+   minX: 2,
+   minY: 1,
+   maxX: -1,
+   maxY: 0
+});
 
 /**
  * Create a unique ID based on tile coordinate.
  */
 const tileID = (z: number, x: number, y: number) => ((1 << z) * y + x) * 32 + z;
 
-function addLine(to: VectorTile) {
-    
-}
+function addLine(to: VectorTile) {}
 
 function addFeature(to: VectorTile, feature: VectorFeature, layerName: string) {
    const target = to.layers[layerName];
@@ -45,17 +63,7 @@ export function createTile(
 
    const tile: VectorTile = {
       layers: {},
-      pointCount: 0,
-      simplifiedCount: 0,
-      featureCount: 0,
-      x,
-      y,
-      z,
-      transformed: false,
-      minX: 2,
-      minY: 1,
-      maxX: -1,
-      maxY: 0
+      transform: emptyTransform()
    };
 
    Object.keys(parent.layers).forEach(name =>
@@ -97,6 +105,7 @@ export function createTile(
  */
 export function splitTile(
    tile: VectorTile,
+   options: Options,
    z: number,
    x: number,
    y: number,
@@ -129,7 +138,7 @@ export function splitTile(
          // stop tiling if we reached max zoom, or if the tile is too simple
          if (
             z === options.indexMaxZoom ||
-            tile.numPoints <= options.indexMaxPoints
+            tile.transform.pointCount <= options.indexMaxPoints
          ) {
             continue;
          }
