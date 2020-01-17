@@ -2,12 +2,23 @@ import PBF from 'pbf';
 import { VectorFeature, Layer, VectorTile } from './types';
 import {TileWrapper } from './tile-wrapper';
 
+/**
+ * Object specifying the vector-tile specification version and extent that were
+ * used to create `layers`.
+ */
+export interface Options {
+   /** Version of vector-tile spec used */
+   version: number
+   /** Extent of the vector tile */
+   extent: number
+}
+
 interface Context {
    feature: VectorFeature;
    keys: string[];
    values: string[];
-   keycache: { [key: number]: string };
-   valuecache: { [key: number]: string };
+   keycache: { [key: string]: number };
+   valuecache: { [key: string]: number };
 }
 
 export const enum Command {
@@ -33,7 +44,7 @@ function writeProperties(context: Context, pbf: PBF) {
 
       let value = feature.properties[key];
       const type = typeof value;
-      
+
       if (type !== 'string' && type !== 'boolean' && type !== 'number') {
          value = JSON.stringify(value);
       }
@@ -69,15 +80,15 @@ function writeGeometry(feature: VectorFeature, pbf: PBF) {
    for (let r = 0; r < rings; r++) {
       const ring = geometry[r];
       let count = 1;
-      
+
       if (type === 1) {
          count = ring.length;
       }
       pbf.writeVarint(command(Command.MoveTo, count));
-      
+
       // do not write polygon closing path as lineto
       const lineCount = type === 3 ? ring.length - 1 : ring.length;
-      
+
       for (let i = 0; i < lineCount; i++) {
          if (i === 1 && type !== 1) {
             pbf.writeVarint(command(Command.LineTo, lineCount - 1));
@@ -173,23 +184,17 @@ function fromVectorTileJs(tile: VectorTile): Uint8Array {
 
 /**
  * Serialized a geojson-vt-created tile to pbf.
- *
- * @param {Object} layers - An object mapping layer names to geojson-vt-created vector tile objects
- * @param {Object} [options] - An object specifying the vector-tile specification version and extent that were used to create `layers`.
- * @param {Number} [options.version=1] - Version of vector-tile spec used
- * @param {Number} [options.extent=4096] - Extent of the vector tile
- * @return {Buffer} uncompressed, pbf-serialized tile data
+ * @return uncompressed, pbf-serialized tile data
  */
-function fromGeojsonVt(layers: {[key:string]: Layer}, options): Uint8Array {
+function fromGeojsonVt(layers: {[key:string]: Layer}, options: Options): Uint8Array {
    options = options || {};
-   const l: Layer = {};
+   const l: {[key: string]: TileWrapper};
 
    Object.keys(layers).forEach(k => {
-
      l[k] = new TileWrapper(layers[k].features, options);
       l[k].name = k;
       l[k].version = options.version;
       l[k].extent = options.extent;
    }
    return fromVectorTileJs({ layers: l });
-});
+};

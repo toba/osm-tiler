@@ -1,14 +1,16 @@
-import { VectorFeature } from './types';
+import { GeoJsonProperties } from 'geojson';
+import { Point, Line } from './point';
+import { VectorFeature, TileFeature } from './types';
 
-export class FeatureWrapper extends VectorFeature {
-   id: number;
+export class FeatureWrapper implements VectorFeature {
+   id?: number;
    type: number;
-   rawGeometry: number[];
-   geometry: number[];
-   properties: { [key: string]: string };
+   rawGeometry: number[][][];
+   geometry?: Line[];
+   properties: GeoJsonProperties;
    extent: number;
 
-   constructor(feature, extent: number) {
+   constructor(feature: TileFeature, extent: number) {
       this.id = typeof feature.id === 'number' ? feature.id : undefined;
       this.type = feature.type;
       this.rawGeometry =
@@ -23,7 +25,8 @@ export class FeatureWrapper extends VectorFeature {
 
       for (let i = 0; i < rings.length; i++) {
          const ring = rings[i];
-         const newRing = [];
+         const newRing: Line = [];
+
          for (let j = 0; j < ring.length; j++) {
             newRing.push(new Point(ring[j][0], ring[j][1]));
          }
@@ -32,12 +35,12 @@ export class FeatureWrapper extends VectorFeature {
       return this.geometry;
    }
 
-   bbox() {
-      if (!this.geometry) {
+   bbox(): [number, number, number, number] {
+      if (this.geometry === undefined || this.geometry.length == 0) {
          this.loadGeometry();
       }
 
-      const rings = this.geometry;
+      const rings = this.geometry!;
       let x1 = Infinity;
       let x2 = -Infinity;
       let y1 = Infinity;
@@ -59,5 +62,5 @@ export class FeatureWrapper extends VectorFeature {
       return [x1, y1, x2, y2];
    }
 
-   toGeoJSON = VectorTileFeature.prototype.toGeoJSON;
+   //toGeoJSON = VectorTileFeature.prototype.toGeoJSON;
 }
