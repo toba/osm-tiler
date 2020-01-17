@@ -1,6 +1,5 @@
 import { forEach } from '@toba/tools';
-import { VectorTile, VectorLayer } from './types';
-import { VectorFeature } from './geojson-vt/types';
+import { VectorTile, VectorLayer, VectorFeature } from './types';
 
 const tileCache = new Map<number, VectorTile>();
 const usedCoord = new Set<{ z: number; x: number; y: number }>();
@@ -9,6 +8,25 @@ const usedCoord = new Set<{ z: number; x: number; y: number }>();
  * Create a unique ID based on tile coordinate.
  */
 const tileID = (z: number, x: number, y: number) => ((1 << z) * y + x) * 32 + z;
+
+function addLine(to: VectorTile) {
+    
+}
+
+function addFeature(to: VectorTile, feature: VectorFeature, layerName: string) {
+   const target = to.layers[layerName];
+   target.features.push(feature);
+}
+
+function addLayer(to: VectorTile, layer: VectorLayer, name: string) {
+   to.layers[name] = {
+      name: layer.name,
+      version: layer.version,
+      extent: layer.extent,
+      features: []
+   };
+   forEach(layer.features, f => addFeature(to, f, name));
+}
 
 /**
  * Simplified tile generation.
@@ -40,36 +58,28 @@ export function createTile(
       maxY: 0
    };
 
-   Object.keys(parent.layers).forEach(name => {
-      const from = parent.layers[name];
-      const to: VectorLayer = {
-         name: from.name,
-         version: from.version,
-         extent: from.extent,
-         features: from.features.map(f => {
-             
-         })
-      };
-   });
+   Object.keys(parent.layers).forEach(name =>
+      addLayer(tile, parent.layers[name], name)
+   );
 
-   forEach(features, f => {
-      addFeature(tile, f, tolerance, options);
+   //    forEach(features, f => {
+   //       addFeature(tile, f, tolerance, options);
 
-      const { minX, minY, maxX, maxY } = f;
+   //       const { minX, minY, maxX, maxY } = f;
 
-      if (minX < tile.minX) {
-         tile.minX = minX;
-      }
-      if (minY < tile.minY) {
-         tile.minY = minY;
-      }
-      if (maxX > tile.maxX) {
-         tile.maxX = maxX;
-      }
-      if (maxY > tile.maxY) {
-         tile.maxY = maxY;
-      }
-   });
+   //       if (minX < tile.minX) {
+   //          tile.minX = minX;
+   //       }
+   //       if (minY < tile.minY) {
+   //          tile.minY = minY;
+   //       }
+   //       if (maxX > tile.maxX) {
+   //          tile.maxX = maxX;
+   //       }
+   //       if (maxY > tile.maxY) {
+   //          tile.maxY = maxY;
+   //       }
+   //    });
 
    return tile;
 }
