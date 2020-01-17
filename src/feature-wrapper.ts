@@ -1,6 +1,6 @@
 import { GeoJsonProperties } from 'geojson';
 import { Point, Line } from './point';
-import { VectorFeature, TileFeature } from './types';
+import { VectorFeature, TileFeature } from './geojson-vt/types';
 
 export class FeatureWrapper implements VectorFeature {
    id?: number;

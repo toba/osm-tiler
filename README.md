@@ -9,7 +9,16 @@
 
 # Toba OSM Tiler
 
-https://github.com/mapbox/vt-pbf
-https://github.com/mapbox/vector-tile-spec/tree/master/2.1
+Rather than a multi-step process like
+
+`osm pbf` ➡ `imposm` ➡ elaborate SQL ➡ write pbf
+
+this library means to convert [Overpass API](https://overpass-turbo.eu/) `JSON` results directly to
+[MapBox vector tiles](https://docs.mapbox.com/vector-tiles/specification/) in order to facilitate scenarios like near-realtime usage of open source data and lightweight preparation for offline modes.
+
+This library relies extensively on open source work shared generously by MapBox, particularly
+
+-  [mapbox/pbf](https://github.com/mapbox/pbf)
+-  [mapbox/geojson-vt](https://github.com/mapbox/geojson-vt)
 
 ## License

@@ -1,9 +1,38 @@
-import { GeoJsonProperties, GeoJsonTypes } from 'geojson';
-import { Line } from './point';
+/**
+ * @see https://github.com/mapbox/vector-tile-spec/tree/master/2.1#434-geometry-types
+ */
+export const enum Type {
+   /**
+    * The specification purposefully leaves an unknown geometry type as an
+    * option. This geometry type encodes experimental geometry types that an
+    * encoder *may* choose to implement. Decoders *may* ignore any features of
+    * this geometry type.
+    */
+   Unknown = 0,
+   Point = 1,
+   Line = 2,
+   Polygon = 3
+}
 
-export type MemGeometry = MemLine | MemPolygon | MemPolygon[];
+/**
+ * A `Command` is combined with the number of times it should be executed to
+ * form an unsigned `CommandInteger` in the protocol buffer.
+ *
+ * @example
+ * CommandInteger = (id & 0x7) | (count << 3)
+ * id = CommandInteger & 0x7
+ * count = CommandInteger >> 3
+ *
+ * @see https://github.com/mapbox/vector-tile-spec/tree/master/2.1#431-command-integers
+ */
+export const enum Command {
+   MoveTo = 1,
+   LineTo = 2,
+   ClosePath = 7
+}
 
-export type MemPolygon = MemLine[];
+export type Point = [number, number];
+export type Line = Point[];
 
 /**
  * Array of numbers in groups of three such that the first is the `x`
@@ -12,7 +41,7 @@ export type MemPolygon = MemLine[];
  * @example
  * [ax, ay, az, bx, by, bz]
  */
-export interface MemLine extends Array<number> {
+export interface PointList extends Array<number> {
    /**
     * Type-specific size of items. For example, if the items describe a line
     * then size may be a measured distance, whereas if they describe a polygon
@@ -23,17 +52,46 @@ export interface MemLine extends Array<number> {
    end?: number;
 }
 
-export interface Coordinate {
-   x: number;
-   y: number;
-   /** Zoom */
-   z: number;
+/**
+ * Geometry data in a Vector Tile is defined in a screen coordinate system. The
+ * upper left corner of the tile (as displayed by default) is the origin of the
+ * coordinate system. The X axis is positive to the right, and the Y axis is
+ * positive downward. Coordinates within a geometry *must* be integers.
+ *
+ * @see https://github.com/mapbox/vector-tile-spec/tree/master/2.1#43-geometry-encoding
+ */
+export type Geometry = Line[];
+
+export interface VectorFeature {
+   id?: number;
+   type: Type;
+   properties: { [key: string]: string };
+   geometry: Geometry;
 }
 
-export const enum LogLevel {
-   None,
-   Basic,
-   All
+export interface VectorLayer {
+   version?: number;
+   /** Unique name that may be targeted with styling rules */
+   name?: string;
+   extent?: number;
+   features: VectorFeature[];
+}
+
+export interface VectorTile {
+   layers: { [key: string]: VectorLayer };
+   // fields below are used only for tile processing -- they aren't serialized
+   // to the final tire
+   pointCount: number;
+   featureCount: number;
+   simplifiedCount: number;
+   x: number;
+   y: number;
+   z: number;
+   transformed: boolean;
+   minX: number;
+   minY: number;
+   maxX: number;
+   maxY: number;
 }
 
 /**
@@ -42,134 +100,4 @@ export const enum LogLevel {
 export const enum Axis {
    Horizontal,
    Vertical
-}
-
-export interface Options {
-   /** Maximum zoom (`0-24`) to preserve detail on */
-   maxZoom: number;
-   /** Simplification tolerance (higher means simpler) */
-   tolerance: number;
-   /** Tile extent */
-   extent: number;
-   /** Tile buffer on each side */
-   buffer: number;
-   /** Name of a feature property to be promoted to `feature.id` */
-   promoteID?: string;
-   /** Whether to generate feature IDs. Cannot be used with `promoteID`. */
-   generateID: boolean;
-   /** Whether to calculate line metrics */
-   lineMetrics: boolean;
-   debug: LogLevel;
-   /** Maximum zoom in the tile index */
-   indexMaxZoom: number;
-   /** Maximum number of points per tile in the tile index */
-   indexMaxPoints: number;
-}
-
-/**
- * Intermediate projected JSON vector format with simplification data.
- */
-export interface MemFeature {
-   id?: string | number;
-   type: GeoJsonTypes;
-   geometry: MemGeometry;
-   /** Minimum `x` coordinate in the `geometry` */
-   minX: number;
-   /** Minimum `y` coordinate in the `geometry` */
-   minY: number;
-   /** Maximum `x` coordinate in the `geometry` */
-   maxX: number;
-   /** Maximum `y` coordinate in the `geometry` */
-   maxY: number;
-   tags: GeoJsonProperties;
-}
-
-export interface Tile {
-   /** Whether tile coordinates have already been transformed to tile space */
-   transformed: boolean;
-   numPoints: number;
-   numSimplified: number;
-   numFeatures: number;
-   source?: MemFeature[];
-   x: number;
-   y: number;
-   /** Zoom */
-   z: number;
-   /** Minimum `x` coordinate in the `features` */
-   minX: number;
-   /** Minimum `y` coordinate in the `features` */
-   minY: number;
-   /** Maximum `x` coordinate in the `features` */
-   maxX: number;
-   /** Maximum `y` coordinate in the `features` */
-   maxY: number;
-   features: TileFeature[];
-}
-
-export type TilePoint = [number, number];
-
-export type TileLine = TilePoint[];
-
-export interface TileFeature {
-   id?: string | number;
-   type: TileFeatureType;
-   geometry: number[] | TileLine | TileLine[];
-   tags: GeoJsonProperties;
-}
-
-export interface Slice {
-   size: number;
-   start: number;
-   end: number;
-}
-
-export const enum TileFeatureType {
-   Point = 1,
-   /** From GeoJSON `Line` or `MultiLine` */
-   Line = 2,
-   /** From GeoJSON `Polygon` or `MultiPolygon` */
-   Polygon = 3
-}
-
-export const enum VectorFeatureType {
-   Unknown = 'Unknown',
-   Point = 'Point',
-   Line = 'LineString',
-   Polygon = 'Polygon'
-}
-
-/**
- * @see https://github.com/mapbox/vt-pbf/blob/master/lib/geojson_wrapper.js
- */
-export interface VectorFeature {
-   id?: number;
-   properties: {};
-   extent: number;
-   type: number;
-
-   _geometry: number;
-   _keys: number;
-   _values: number;
-
-   loadGeometry(): Line[];
-   bbox(): [number, number, number, number];
-}
-
-/**
- * @see https://github.com/mapbox/vector-tile-js/blob/master/lib/vectortilelayer.js
- */
-export interface Layer {
-   version: number;
-   name: string;
-   extent: number;
-   length: number;
-   _keys: number[];
-   _values: number[];
-   _features: VectorFeature[];
-
-   feature(index: number): VectorFeature;
-}
-
-export interface VectorTile {
-   layers: { [name: string]: Layer };
 }

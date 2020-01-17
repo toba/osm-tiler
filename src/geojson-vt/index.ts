@@ -18,10 +18,6 @@ const defaultOptions: Options = {
    debug: LogLevel.None
 };
 
-/**
- * Create a unique ID based on tile coordinate.
- */
-const toID = (z: number, x: number, y: number) => ((1 << z) * y + x) * 32 + z;
 
 type Hash = { [key: string]: any };
 
@@ -166,7 +162,8 @@ class GeoJSONVT {
             }
          }
 
-         // save reference to original geometry in tile so that we can drill down later if we stop now
+         // save reference to original geometry in tile so that we can drill
+         // down later if we stop now
          tile.source = features;
 
          // if it's the first-pass tiling

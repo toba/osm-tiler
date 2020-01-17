@@ -4,7 +4,7 @@ import { Feature } from 'geojson';
 import { geojsonvt } from './index';
 
 const leftPoint: Feature = {
-   type: Type.Feature,
+   type: Type.Feature, 
    properties: {},
    geometry: {
       coordinates: [-540, 0],
