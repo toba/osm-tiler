@@ -1,5 +1,4 @@
-import path from 'path';
-import { readFileText } from '@toba/test';
+import { loadJSON } from './__mocks__';
 import { prepare } from './prepare';
 import { defaultOptions } from './index';
 
@@ -7,11 +6,7 @@ const options = defaultOptions;
 let res: any;
 
 beforeAll(async () => {
-   const js = await readFileText(
-      path.join(__dirname, '__mocks__', 'overpass-blacks-creek-road.json')
-   );
-   expect(js).toBeDefined();
-   res = JSON.parse(js);
+   res = await loadJSON('overpass-blacks-creek-road');
 });
 
 it('converts Overpass JSON response to intermediate tile', () => {

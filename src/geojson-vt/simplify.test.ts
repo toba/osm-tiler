@@ -1,5 +1,5 @@
-import '@toba/test';
-import { simplify } from './simplify';
+import '@toba/test'
+import { simplify } from './simplify'
 
 // prettier-ignore
 const points = [
@@ -44,42 +44,42 @@ const simplified = [
 ];
 
 it('simplifies points correctly with the given tolerance', () => {
-   const coords: number[] = [];
-   const tolerance = 0.001;
+   const coords: number[] = []
+   const tolerance = 0.001
 
    for (let i = 0; i < points.length; i++) {
-      coords.push(points[i][0], points[i][1], 0);
+      coords.push(points[i][0], points[i][1], 0)
    }
 
-   coords[2] = 1; // first zoom value
-   coords[coords.length - 1] = 1; // last zoom value
+   coords[2] = 1 // first zoom value
+   coords[coords.length - 1] = 1 // last zoom value
 
-   simplify(coords, 0, coords.length - 3, tolerance * tolerance);
+   simplify(coords, 0, coords.length - 3, tolerance * tolerance)
 
-   const result = [];
+   const result = []
    for (let i = 0; i < coords.length; i += 3) {
       if (coords[i + 2] > 0.005 * 0.005) {
-         result.push([coords[i], coords[i + 1]]);
+         result.push([coords[i], coords[i + 1]])
       }
    }
 
-   expect(result).toEqual(simplified);
-});
+   expect(result).toEqual(simplified)
+})
 
 it('does not throw max call stack error on bad long input', () => {
-   const coords: number[] = [];
+   const coords: number[] = []
 
    for (let i = 0; i < 1400; i++) {
-      coords.push(...[0.0, 0.0], ...[1.0, 0.0], ...[1.0, 1.0], ...[0.0, 1.0]);
+      coords.push(...[0.0, 0.0], ...[1.0, 0.0], ...[1.0, 1.0], ...[0.0, 1.0])
    }
 
-   let caught: Error | undefined;
+   let caught: Error | undefined
 
    try {
-      simplify(coords, 2e-15);
+      simplify(coords, 2e-15)
    } catch (e) {
-      caught = e;
+      caught = e
    }
 
-   expect(caught).toBeUndefined();
-});
+   expect(caught).toBeUndefined()
+})

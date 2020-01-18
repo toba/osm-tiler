@@ -1,5 +1,5 @@
-import { GeoJsonType as Type } from '@toba/map';
-import { forEach } from '@toba/node-tools';
+import { GeoJsonType as Type } from '@toba/map'
+import { forEach } from '@toba/node-tools'
 import {
    Options,
    MemFeature,
@@ -9,33 +9,33 @@ import {
    MemPolygon,
    TileFeatureType,
    TileLine
-} from './types';
+} from './types'
 
 function eachPoint(
    line: MemLine,
    fn: (x: number, y: number, zoom: number) => void
 ) {
    for (let i = 0; i < line.length; i += 3) {
-      fn(line[i], line[i + 1], line[i + 2]);
+      fn(line[i], line[i + 1], line[i + 2])
    }
 }
 
 function rewind(line: number[], clockwise: boolean) {
-   let area = 0;
+   let area = 0
 
    for (let i = 0, len = line.length, j = len - 2; i < len; j = i, i += 2) {
-      area += (line[i] - line[j]) * (line[i + 1] + line[j + 1]);
+      area += (line[i] - line[j]) * (line[i + 1] + line[j + 1])
    }
 
    if (area > 0 === clockwise) {
       for (let i = 0, len = line.length; i < len / 2; i += 2) {
-         const x = line[i];
-         const y = line[i + 1];
+         const x = line[i]
+         const y = line[i + 1]
 
-         line[i] = line[len - 2 - i];
-         line[i + 1] = line[len - 1 - i];
-         line[len - 2 - i] = x;
-         line[len - 1 - i] = y;
+         line[i] = line[len - 2 - i]
+         line[i + 1] = line[len - 1 - i]
+         line[len - 2 - i] = x
+         line[len - 1 - i] = y
       }
    }
 }
@@ -48,30 +48,29 @@ function addLine(
    isPolygon: boolean,
    isOuter: boolean
 ) {
-   const sqTolerance = tolerance * tolerance;
+   const sqTolerance = tolerance * tolerance
 
    if (
       tolerance > 0 &&
       (geom.size ?? 0) < (isPolygon ? sqTolerance : tolerance)
    ) {
-      tile.numPoints += geom.length / 3;
-      return;
+      tile.numPoints += geom.length / 3
+      return
    }
 
-   const line: number[] = [];
+   const line: number[] = []
 
    eachPoint(geom, (x, y, z) => {
       if (tolerance === 0 || z > sqTolerance) {
-         tile.numSimplified++;
-         line.push(x, y);
+         tile.numSimplified++
+         line.push(x, y)
       }
-      tile.numPoints++;
-   });
+      tile.numPoints++
+   })
 
-   if (isPolygon) {
-      rewind(line, isOuter);
-   }
-   out.push(line);
+   if (isPolygon) rewind(line, isOuter)
+
+   out.push(line)
 }
 
 function addFeature(
@@ -80,19 +79,19 @@ function addFeature(
    tolerance: number,
    options: Options
 ) {
-   const geom = feature.geometry;
-   const { type } = feature;
-   const simplified: number[] | TileLine = [];
+   const geom = feature.geometry
+   const { type } = feature
+   const simplified: number[] | TileLine = []
 
    switch (type) {
       case Type.Point:
       case Type.MultiPoint:
          eachPoint(geom as MemLine, (x, y) => {
-            (simplified as number[]).push(x, y);
-            tile.numPoints++;
-            tile.numSimplified++;
-         });
-         break;
+            ;(simplified as number[]).push(x, y)
+            tile.numPoints++
+            tile.numSimplified++
+         })
+         break
       case Type.Line:
          addLine(
             simplified as TileLine,
@@ -101,8 +100,8 @@ function addFeature(
             tolerance,
             false,
             false
-         );
-         break;
+         )
+         break
       case Type.MultiLine:
       case Type.Polygon:
          forEach(geom as MemPolygon, (line, i) =>
@@ -114,8 +113,8 @@ function addFeature(
                type === Type.Polygon,
                i === 0
             )
-         );
-         break;
+         )
+         break
       case Type.MultiPolygon:
          forEach(geom as MemPolygon[], p =>
             forEach(p, (line, i) =>
@@ -128,27 +127,27 @@ function addFeature(
                   i === 0
                )
             )
-         );
-         break;
+         )
+         break
       default:
-         break;
+         break
    }
 
    if (simplified.length > 0) {
-      let tags = feature.tags;
+      let tags = feature.tags
 
       if (type === Type.Line && options.lineMetrics) {
-         const line = geom as MemLine;
-         const size = line.size!;
-         tags = {};
+         const line = geom as MemLine
+         const size = line.size!
+         tags = {}
 
          if (feature.tags !== null) {
             Object.keys(feature.tags).forEach((key: string) => {
-               tags![key] = feature.tags![key];
-            });
+               tags![key] = feature.tags![key]
+            })
          }
-         tags['mapbox_clip_start'] = line.start! / size;
-         tags['mapbox_clip_end'] = line.end! / size;
+         tags['mapbox_clip_start'] = line.start! / size
+         tags['mapbox_clip_end'] = line.end! / size
       }
 
       const tileFeature: TileFeature = {
@@ -160,12 +159,12 @@ function addFeature(
                ? TileFeatureType.Line
                : TileFeatureType.Point,
          tags
-      };
+      }
 
       if (feature.id !== undefined) {
-         tileFeature.id = feature.id;
+         tileFeature.id = feature.id
       }
-      tile.features.push(tileFeature);
+      tile.features.push(tileFeature)
    }
 }
 
@@ -182,7 +181,7 @@ export function createTile(
    const tolerance =
       z === options.maxZoom
          ? 0
-         : options.tolerance / ((1 << z) * options.extent);
+         : options.tolerance / ((1 << z) * options.extent)
 
    const tile: Tile = {
       features: [],
@@ -198,26 +197,18 @@ export function createTile(
       minY: 1,
       maxX: -1,
       maxY: 0
-   };
+   }
 
    forEach(features, f => {
-      addFeature(tile, f, tolerance, options);
+      addFeature(tile, f, tolerance, options)
 
-      const { minX, minY, maxX, maxY } = f;
+      const { minX, minY, maxX, maxY } = f
 
-      if (minX < tile.minX) {
-         tile.minX = minX;
-      }
-      if (minY < tile.minY) {
-         tile.minY = minY;
-      }
-      if (maxX > tile.maxX) {
-         tile.maxX = maxX;
-      }
-      if (maxY > tile.maxY) {
-         tile.maxY = maxY;
-      }
-   });
+      if (minX < tile.minX) tile.minX = minX
+      if (minY < tile.minY) tile.minY = minY
+      if (maxX > tile.maxX) tile.maxX = maxX
+      if (maxY > tile.maxY) tile.maxY = maxY
+   })
 
-   return tile;
+   return tile
 }

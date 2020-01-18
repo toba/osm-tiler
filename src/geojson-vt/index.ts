@@ -18,8 +18,13 @@ const defaultOptions: Options = {
    debug: LogLevel.None
 };
 
-
 type Hash = { [key: string]: any };
+
+/**
+ * Create a unique ID based on tile coordinate.
+ */
+export const toID = (z: number, x: number, y: number) =>
+   ((1 << z) * y + x) * 32 + z;
 
 /**
  * Copy all values, without regard for `null` or `undefined`, from `src` to

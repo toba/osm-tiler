@@ -35,21 +35,23 @@ export type Point = [number, number];
 export type Line = Point[];
 
 /**
- * Array of numbers in groups of three such that the first is the `x`
- * coordinate, next is the `y` coordinate and last is the zoom level.
+ * Array of numbers in groups of two or three such that the first is the `x`
+ * coordinate, next is the `y` coordinate and, for 3D lists, last is the zoom
+ * level.
  *
  * @example
  * [ax, ay, az, bx, by, bz]
+ * [ax, ay, bx, by]
  */
 export interface PointList extends Array<number> {
    /**
-    * Type-specific size of items. For example, if the items describe a line
-    * then size may be a measured distance, whereas if they describe a polygon
-    * then the size could be an area.
+    * Size represented by the points. For lines, this is the length. For lines
+    * that enclose an area, this will be the area.
     */
    size?: number;
    start?: number;
    end?: number;
+   dimensions?: number;
 }
 
 /**
@@ -60,13 +62,50 @@ export interface PointList extends Array<number> {
  *
  * @see https://github.com/mapbox/vector-tile-spec/tree/master/2.1#43-geometry-encoding
  */
-export type Geometry = Line[];
+export type Geometry = PointList[];
+
+/**
+ * Transformation status and metadata.
+ */
+export interface Status {
+   pointCount: number;
+   featureCount: number;
+   simplifiedCount: number;
+   minX: number;
+   minY: number;
+   maxX: number;
+   maxY: number;
+}
+
+export interface TileStatus extends Status {
+   x: number;
+   y: number;
+   z: number;
+   complete: boolean;
+}
+
+export interface FeatureStatus extends Status {
+   /** Original geometry from Overpass */
+   geometry: Geometry;
+}
 
 export interface VectorFeature {
    id?: number;
    type: Type;
    properties: { [key: string]: string };
+   /**
+    * All feature types are stored as `number[][]`
+    * @example
+    *   point = [[89,23,0]]
+    *    line = [[3,4,0, 8,9,0, 15,18,0]]
+    * polygon = [[3,4,0, 8,9,0, 15,18,0],[12,89,0, 34,56,0]]
+    */
    geometry: Geometry;
+   /**
+    * `status` properties are not part of the vector tile specification but are
+    * used to facilitate processing
+    */
+   status: FeatureStatus;
 }
 
 export interface VectorLayer {
@@ -77,30 +116,15 @@ export interface VectorLayer {
    features: VectorFeature[];
 }
 
-/**
- * Tile transformation status and metadata.
- */
-export interface TransformStatus {
-   pointCount: number;
-   featureCount: number;
-   simplifiedCount: number;
-   x: number;
-   y: number;
-   z: number;
-   complete: boolean;
-   minX: number;
-   minY: number;
-   maxX: number;
-   maxY: number;
-}
+export type LayerMap = { [key: string]: VectorLayer };
 
 export interface VectorTile {
-   layers: { [key: string]: VectorLayer };
+   layers: LayerMap;
    /**
-    * `transform` properties are not part of the vector tile specification but
-    * are used to facilitate processing
+    * `status` properties are not part of the vector tile specification but are
+    * used to facilitate processing
     */
-   transform: TransformStatus;
+   status: TileStatus;
 }
 
 /**
@@ -116,13 +140,16 @@ export const enum Axis {
  * used to create `layers`.
  */
 export interface Options {
-   /** Version of vector-tile spec used */
+   /**
+    * Version of vector-tile spec used
+    * @see https://docs.mapbox.com/vector-tiles/specification/#versioning
+    */
    version: number;
    /** Maximum zoom (`0-24`) to preserve detail on */
    maxZoom: number;
    /** Simplification tolerance (higher means simpler) */
    tolerance: number;
-   /** Tile extent */
+   /** Tile height and width */
    extent: number;
    /** Tile buffer on each side */
    buffer: number;
@@ -130,10 +157,8 @@ export interface Options {
    promoteID?: string;
    /** Whether to generate feature IDs. Cannot be used with `promoteID`. */
    generateID: boolean;
-   /** Whether to calculate line metrics */
-   lineMetrics: boolean;
-   /** Maximum zoom in the tile index */
-   indexMaxZoom: number;
-   /** Maximum number of points per tile in the tile index */
-   indexMaxPoints: number;
+   /** Maximum zoom tile */
+   maxTileZoom: number;
+   /** Maximum number of points per tile */
+   maxTilePoints: number;
 }

@@ -1,17 +1,17 @@
-import '@toba/test';
-import fs from 'fs';
-import path from 'path';
-import { Encoding } from '@toba/tools';
-import { GeoJsonType as Type } from '@toba/map';
-import { geojsonvt } from './index';
-import { LogLevel, TileFeatureType } from './types';
+import '@toba/test'
+import fs from 'fs'
+import path from 'path'
+import { Encoding } from '@toba/tools'
+import { GeoJsonType as Type } from '@toba/map'
+import { geojsonvt } from './index'
+import { LogLevel, TileFeatureType } from './types'
 
 const getJSON = (name: string) =>
    JSON.parse(
       fs.readFileSync(path.join(__dirname, '__mocks__', name), {
          encoding: Encoding.UTF8
       })
-   );
+   )
 
 const square = [
    {
@@ -28,27 +28,27 @@ const square = [
       tags: { name: 'Pennsylvania', density: 284.3 },
       id: '42'
    }
-];
+]
 
 it('getTile: us-states.json', () => {
-   const log = console.log;
-   console.log = () => {};
-   console.time = () => {};
-   const index = geojsonvt(getJSON('us-states.json'), { debug: LogLevel.All });
+   const log = console.log
+   console.log = () => {}
+   console.time = () => {}
+   const index = geojsonvt(getJSON('us-states.json'), { debug: LogLevel.All })
 
    expect(index.getTile(7, 37, 48)?.features).toEqual(
       getJSON('us-states-z7-37-48.json')
-   );
+   )
 
-   expect(index.getTile(9, 148, 192)?.features).toEqual(square);
-   expect(index.getTile(11, 800, 400)).toBeNull();
-   expect(index.getTile(-5, 123.25, 400.25)).toBeNull();
-   expect(index.getTile(25, 200, 200)).toBeNull();
+   expect(index.getTile(9, 148, 192)?.features).toEqual(square)
+   expect(index.getTile(11, 800, 400)).toBeNull()
+   expect(index.getTile(-5, 123.25, 400.25)).toBeNull()
+   expect(index.getTile(25, 200, 200)).toBeNull()
 
-   console.log = log;
+   console.log = log
 
-   expect(index.total).toBe(37);
-});
+   expect(index.total).toBe(37)
+})
 
 it('getTile: unbuffered tile left/right edges', () => {
    const index = geojsonvt(
@@ -62,9 +62,9 @@ it('getTile: unbuffered tile left/right edges', () => {
       {
          buffer: 0
       }
-   );
+   )
 
-   expect(index.getTile(2, 1, 1)).toBeNull();
+   expect(index.getTile(2, 1, 1)).toBeNull()
    expect(index.getTile(2, 2, 1)?.features).toEqual([
       {
          geometry: [
@@ -76,8 +76,8 @@ it('getTile: unbuffered tile left/right edges', () => {
          type: TileFeatureType.Line,
          tags: null
       }
-   ]);
-});
+   ])
+})
 
 it('getTile: unbuffered tile top/bottom edges', () => {
    const index = geojsonvt(
@@ -91,7 +91,7 @@ it('getTile: unbuffered tile top/bottom edges', () => {
       {
          buffer: 0
       }
-   );
+   )
 
    expect(index.getTile(2, 1, 0)?.features).toEqual([
       {
@@ -104,9 +104,9 @@ it('getTile: unbuffered tile top/bottom edges', () => {
          type: TileFeatureType.Line,
          tags: null
       }
-   ]);
-   expect(index.getTile(2, 1, 1)?.features).toEqual([]);
-});
+   ])
+   expect(index.getTile(2, 1, 1)?.features).toEqual([])
+})
 
 it('getTile: polygon clipping on the boundary', () => {
    const index = geojsonvt(
@@ -125,7 +125,7 @@ it('getTile: polygon clipping on the boundary', () => {
       {
          buffer: 1024
       }
-   );
+   )
 
    expect(index.getTile(5, 19, 9)?.features).toEqual([
       {
@@ -141,5 +141,5 @@ it('getTile: polygon clipping on the boundary', () => {
          type: TileFeatureType.Polygon,
          tags: null
       }
-   ]);
-});
+   ])
+})

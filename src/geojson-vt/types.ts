@@ -1,9 +1,9 @@
-import { GeoJsonProperties, GeoJsonTypes } from 'geojson';
-import { Line } from '../point';
+import { GeoJsonProperties, GeoJsonTypes } from 'geojson'
+import { Line } from '../point'
 
-export type MemGeometry = MemLine | MemPolygon | MemPolygon[];
+export type MemGeometry = MemLine | MemPolygon | MemPolygon[]
 
-export type MemPolygon = MemLine[];
+export type MemPolygon = MemLine[]
 
 /**
  * Array of numbers in groups of three such that the first is the `x`
@@ -18,16 +18,16 @@ export interface MemLine extends Array<number> {
     * then size may be a measured distance, whereas if they describe a polygon
     * then the size could be an area.
     */
-   size?: number;
-   start?: number;
-   end?: number;
+   size?: number
+   start?: number
+   end?: number
 }
 
 export interface Coordinate {
-   x: number;
-   y: number;
+   x: number
+   y: number
    /** Zoom */
-   z: number;
+   z: number
 }
 
 export const enum LogLevel {
@@ -46,81 +46,81 @@ export const enum Axis {
 
 export interface Options {
    /** Maximum zoom (`0-24`) to preserve detail on */
-   maxZoom: number;
+   maxZoom: number
    /** Simplification tolerance (higher means simpler) */
-   tolerance: number;
+   tolerance: number
    /** Tile extent */
-   extent: number;
+   extent: number
    /** Tile buffer on each side */
-   buffer: number;
+   buffer: number
    /** Name of a feature property to be promoted to `feature.id` */
-   promoteID?: string;
+   promoteID?: string
    /** Whether to generate feature IDs. Cannot be used with `promoteID`. */
-   generateID: boolean;
+   generateID: boolean
    /** Whether to calculate line metrics */
-   lineMetrics: boolean;
-   debug: LogLevel;
+   lineMetrics: boolean
+   debug: LogLevel
    /** Maximum zoom in the tile index */
-   indexMaxZoom: number;
+   indexMaxZoom: number
    /** Maximum number of points per tile in the tile index */
-   indexMaxPoints: number;
+   indexMaxPoints: number
 }
 
 /**
  * Intermediate projected JSON vector format with simplification data.
  */
 export interface MemFeature {
-   id?: string | number;
-   type: GeoJsonTypes;
-   geometry: MemGeometry;
+   id?: string | number
+   type: GeoJsonTypes
+   geometry: MemGeometry
    /** Minimum `x` coordinate in the `geometry` */
-   minX: number;
+   minX: number
    /** Minimum `y` coordinate in the `geometry` */
-   minY: number;
+   minY: number
    /** Maximum `x` coordinate in the `geometry` */
-   maxX: number;
+   maxX: number
    /** Maximum `y` coordinate in the `geometry` */
-   maxY: number;
-   tags: GeoJsonProperties;
+   maxY: number
+   tags: GeoJsonProperties
 }
 
 export interface Tile {
    /** Whether tile coordinates have already been transformed to tile space */
-   transformed: boolean;
-   numPoints: number;
-   numSimplified: number;
-   numFeatures: number;
-   source?: MemFeature[];
-   x: number;
-   y: number;
+   transformed: boolean
+   numPoints: number
+   numSimplified: number
+   numFeatures: number
+   source?: MemFeature[]
+   x: number
+   y: number
    /** Zoom */
-   z: number;
+   z: number
    /** Minimum `x` coordinate in the `features` */
-   minX: number;
+   minX: number
    /** Minimum `y` coordinate in the `features` */
-   minY: number;
+   minY: number
    /** Maximum `x` coordinate in the `features` */
-   maxX: number;
+   maxX: number
    /** Maximum `y` coordinate in the `features` */
-   maxY: number;
-   features: TileFeature[];
+   maxY: number
+   features: TileFeature[]
 }
 
-export type TilePoint = [number, number];
+export type TilePoint = [number, number]
 
-export type TileLine = TilePoint[];
+export type TileLine = TilePoint[]
 
 export interface TileFeature {
-   id?: string | number;
-   type: TileFeatureType;
-   geometry: number[] | TileLine | TileLine[];
-   tags: GeoJsonProperties;
+   id?: string | number
+   type: TileFeatureType
+   geometry: number[] | TileLine | TileLine[]
+   tags: GeoJsonProperties
 }
 
 export interface Slice {
-   size: number;
-   start: number;
-   end: number;
+   size: number
+   start: number
+   end: number
 }
 
 export const enum TileFeatureType {
@@ -142,34 +142,34 @@ export const enum VectorFeatureType {
  * @see https://github.com/mapbox/vt-pbf/blob/master/lib/geojson_wrapper.js
  */
 export interface VectorFeature {
-   id?: number;
-   properties: {};
-   extent: number;
-   type: number;
+   id?: number
+   properties: {}
+   extent: number
+   type: number
 
-   _geometry: number;
-   _keys: number;
-   _values: number;
+   _geometry: number
+   _keys: number
+   _values: number
 
-   loadGeometry(): Line[];
-   bbox(): [number, number, number, number];
+   loadGeometry(): Line[]
+   bbox(): [number, number, number, number]
 }
 
 /**
  * @see https://github.com/mapbox/vector-tile-js/blob/master/lib/vectortilelayer.js
  */
 export interface Layer {
-   version: number;
-   name: string;
-   extent: number;
-   length: number;
-   _keys: number[];
-   _values: number[];
-   _features: VectorFeature[];
+   version: number
+   name: string
+   extent: number
+   length: number
+   _keys: number[]
+   _values: number[]
+   _features: VectorFeature[]
 
-   feature(index: number): VectorFeature;
+   feature(index: number): VectorFeature
 }
 
 export interface VectorTile {
-   layers: { [name: string]: Layer };
+   layers: { [name: string]: Layer }
 }

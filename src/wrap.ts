@@ -1,11 +1,16 @@
 import { GeoJsonType as Type } from '@toba/map'
 import { forEach } from '@toba/node-tools'
 import { clip } from './clip'
-import { createFeature } from './feature'
-import { Options, MemFeature, MemLine, MemGeometry, MemPolygon } from './types'
+import {
+   Options,
+   PointList,
+   Geometry,
+   VectorFeature,
+   VectorTile
+} from './types'
 
-function shiftCoords(points: MemLine, offset: number): MemLine {
-   const newPoints: MemLine = []
+function shiftCoords(points: PointList, offset: number): PointList {
+   const newPoints: PointList = []
    newPoints.size = points.size
 
    if (points.start !== undefined) {
@@ -19,13 +24,13 @@ function shiftCoords(points: MemLine, offset: number): MemLine {
    return newPoints
 }
 
-function shiftFeatureCoords(features: MemFeature[], offset: number) {
-   const newFeatures: MemFeature[] = []
+function shiftFeatureCoords(features: PointList[], offset: number) {
+   const newFeatures: PointList[] = []
 
    forEach(features, f => {
       const { type } = f
 
-      let newGeometry: MemGeometry
+      let newGeometry: Geometry
 
       switch (type) {
          case Type.Point:
@@ -57,22 +62,26 @@ function shiftFeatureCoords(features: MemFeature[], offset: number) {
 /**
  * Date line processing
  */
-export function wrap(features: MemFeature[], options: Options): MemFeature[] {
+export function wrap(tile: VectorTile, options: Options): VectorTile {
    const buffer = options.buffer / options.extent
    /** Center world copy */
-   let merged = features
+   let merged = tile
    /** Left world copy */
-   const left = clip(features, 1, -1 - buffer, buffer, 0, -1, 2, options)
+   const left = clip(tile, 1, -1 - buffer, buffer, 0, -1, 2)
    /** Right world copy */
-   const right = clip(features, 1, 1 - buffer, 2 + buffer, 0, -1, 2, options)
+   const right = clip(tile, 1, 1 - buffer, 2 + buffer, 0, -1, 2)
 
    if (left || right) {
-      merged = clip(features, 1, -buffer, 1 + buffer, 0, -1, 2, options) || []
+      merged = clip(tile, 1, -buffer, 1 + buffer, 0, -1, 2) ?? []
 
-      // merge left into center
-      if (left) merged = shiftFeatureCoords(left, 1).concat(merged)
-      // merge right into center
-      if (right) merged = merged.concat(shiftFeatureCoords(right, -1))
+      if (left) {
+         // merge left into center
+         merged = shiftFeatureCoords(tile, 1).concat(merged)
+      }
+      if (right) {
+         // merge right into center
+         merged = merged.concat(shiftFeatureCoords(right, -1))
+      }
    }
 
    return merged

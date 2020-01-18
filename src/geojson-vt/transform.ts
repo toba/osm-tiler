@@ -1,9 +1,9 @@
-import { forEach } from '@toba/node-tools';
-import { Tile, TileFeatureType, TileLine } from './types';
+import { forEach } from '@toba/node-tools'
+import { Tile, TileFeatureType, TileLine } from './types'
 
 function eachPoint(line: number[], fn: (x: number, y: number) => void) {
    for (let i = 0; i < line.length; i += 2) {
-      fn(line[i], line[i + 1]);
+      fn(line[i], line[i + 1])
    }
 }
 
@@ -18,7 +18,7 @@ function transformPoint(
    return [
       Math.round(extent * (x * z2 - tx)),
       Math.round(extent * (y * z2 - ty))
-   ];
+   ]
 }
 
 /**
@@ -27,37 +27,37 @@ function transformPoint(
  */
 export function transformTile(tile: Tile, extent: number): Tile {
    if (tile.transformed) {
-      return tile;
+      return tile
    }
 
-   const z2 = 1 << tile.z;
-   const tx = tile.x;
-   const ty = tile.y;
+   const z2 = 1 << tile.z
+   const tx = tile.x
+   const ty = tile.y
 
    forEach(tile.features, f => {
-      const geom = f.geometry;
-      const { type } = f;
+      const geom = f.geometry
+      const { type } = f
 
-      f.geometry = [];
+      f.geometry = []
 
       if (type === TileFeatureType.Point) {
          eachPoint(geom as number[], (x, y) => {
-            (f.geometry as TileLine).push(
+            ;(f.geometry as TileLine).push(
                transformPoint(x, y, extent, z2, tx, ty)
-            );
-         });
+            )
+         })
       } else {
          forEach(geom as TileLine, line => {
-            const ring: TileLine = [];
+            const ring: TileLine = []
             eachPoint(line, (x: number, y: number) =>
                ring.push(transformPoint(x, y, extent, z2, tx, ty))
-            );
-            (f.geometry as TileLine[]).push(ring);
-         });
+            )
+            ;(f.geometry as TileLine[]).push(ring)
+         })
       }
-   });
+   })
 
-   tile.transformed = true;
+   tile.transformed = true
 
-   return tile;
+   return tile
 }

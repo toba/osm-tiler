@@ -3,38 +3,27 @@ import {
    OverpassResponse,
    OverpassWay,
    ItemType,
-   OverpassNode
+   OverpassNode,
+   OverpassElement
 } from '@toba/osm-models';
 import {
    VectorTile,
    Point,
    VectorFeature,
    Type,
-   TransformStatus,
-   Options
+   Options,
+   Geometry
 } from './types';
-
-export const emptyTransform = (x = 0, y = 0, z = 0): TransformStatus => ({
-   pointCount: 0,
-   simplifiedCount: 0,
-   featureCount: 0,
-   x,
-   y,
-   z,
-   complete: false,
-   minX: 2,
-   minY: 1,
-   maxX: -1,
-   maxY: 0
-});
+import { Schema } from './schema';
+import { emptyStatus } from './tools';
 
 /**
- * Translate latitude from WSG84 to percent.
+ * Translate latitude from WSG84 to unit square.
  */
 const projectX = (x: number): number => x / 360 + 0.5;
 
 /**
- * Translate longitude from WSG84 to percent.
+ * Translate longitude from WSG84 to unit square.
  */
 function projectY(y: number): number {
    const sin = Math.sin((y * Math.PI) / 180);
@@ -42,42 +31,83 @@ function projectY(y: number): number {
    return y2 < 0 ? 0 : y2 > 1 ? 1 : y2;
 }
 
+/**
+ * Divide elements into layers according to the OpenMapTiles Vector Tile Schema.
+ * @see https://openmaptiles.org/schema/
+ */
+export function inferLayer(el: OverpassElement): Schema {
+   // TODO: map elements to layer names
+   return Schema.Transportation;
+}
+
+/**
+ * Create initial `VectorTile` from Overpass response. This initial "tile"
+ * exists only temporarily to hold data in the expected format. It must be
+ * split into proper tiles before serving to a map.
+ */
 export function prepare(res: OverpassResponse, options: Options): VectorTile {
+   /** Nodes keyed to their OSM ID */
    const nodes = new Map<number, Point>();
-   const ways: OverpassWay[] = [];
+   /** Ways keyed to a layer name */
+   const layers = new Map<string, OverpassWay[]>();
+
+   let pointCount = 0;
+   let featureCount = 0;
 
    forEach(res.elements, el => {
       switch (el.type) {
          case ItemType.Node: {
             const n = el as OverpassNode;
             nodes.set(n.id, [projectX(n.lat), projectY(n.lon)]);
+            pointCount++;
             break;
          }
-         case ItemType.Way:
-            ways.push(el as OverpassWay);
+         case ItemType.Way: {
+            const layerName = inferLayer(el);
+            if (!layers.has(layerName)) {
+               layers.set(layerName, []);
+            }
+            layers.get(layerName)!.push(el as OverpassWay);
+            featureCount++;
+            break;
+         }
+         case ItemType.Relation:
+            // TODO: handle relations
             break;
          default:
             break;
       }
    });
 
-   return {
-      layers: {
-         overpass: {
-            features: ways.map(
-               w =>
-                  ({
-                     type: Type.Line,
-                     properties: {},
-                     geometry: [
-                        w.nodes
-                           .filter(id => nodes.has(id))
-                           .map(id => nodes.get(id)!)
-                     ]
-                  } as VectorFeature)
-            )
-         }
-      },
-      transform: emptyTransform()
-   } as VectorTile;
+   const tile: VectorTile = {
+      layers: {},
+      status: {
+         ...emptyStatus(),
+         pointCount,
+         featureCount
+      }
+   };
+
+   layers.forEach((ways, name) => {
+      tile.layers[name] = {
+         features: ways.map(w => {
+            const geometry: Geometry = [[]];
+
+            forEach(w.nodes, id => {
+               if (nodes.has(id)) {
+                  const n = nodes.get(id)!;
+                  geometry[0].push(n[0], n[1], 0);
+               }
+            });
+
+            return {
+               type: Type.Line,
+               properties: {},
+               geometry
+            } as VectorFeature;
+         })
+      };
+   });
+
+   return tile;
 }
