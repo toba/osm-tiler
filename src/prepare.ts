@@ -5,7 +5,28 @@ import {
    ItemType,
    OverpassNode
 } from '@toba/osm-models';
-import { VectorTile, Point, VectorFeature, Type } from './types';
+import {
+   VectorTile,
+   Point,
+   VectorFeature,
+   Type,
+   TransformStatus,
+   Options
+} from './types';
+
+export const emptyTransform = (x = 0, y = 0, z = 0): TransformStatus => ({
+   pointCount: 0,
+   simplifiedCount: 0,
+   featureCount: 0,
+   x,
+   y,
+   z,
+   complete: false,
+   minX: 2,
+   minY: 1,
+   maxX: -1,
+   maxY: 0
+});
 
 /**
  * Translate latitude from WSG84 to percent.
@@ -21,7 +42,7 @@ function projectY(y: number): number {
    return y2 < 0 ? 0 : y2 > 1 ? 1 : y2;
 }
 
-export function prepare(res: OverpassResponse): VectorTile {
+export function prepare(res: OverpassResponse, options: Options): VectorTile {
    const nodes = new Map<number, Point>();
    const ways: OverpassWay[] = [];
 
@@ -56,6 +77,7 @@ export function prepare(res: OverpassResponse): VectorTile {
                   } as VectorFeature)
             )
          }
-      }
+      },
+      transform: emptyTransform()
    } as VectorTile;
 }

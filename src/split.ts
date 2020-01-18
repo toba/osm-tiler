@@ -1,28 +1,9 @@
 import { forEach } from '@toba/tools';
-import {
-   VectorTile,
-   VectorLayer,
-   VectorFeature,
-   Options,
-   TransformStatus
-} from './types';
+import { VectorTile, VectorLayer, VectorFeature, Options } from './types';
+import { emptyTransform } from './prepare';
 
 const tileCache = new Map<number, VectorTile>();
 const usedCoord = new Set<{ z: number; x: number; y: number }>();
-
-const emptyTransform = (x = 0, y = 0, z = 0): TransformStatus => ({
-   pointCount: 0,
-   simplifiedCount: 0,
-   featureCount: 0,
-   x,
-   y,
-   z,
-   complete: false,
-   minX: 2,
-   minY: 1,
-   maxX: -1,
-   maxY: 0
-});
 
 /**
  * Create a unique ID based on tile coordinate.

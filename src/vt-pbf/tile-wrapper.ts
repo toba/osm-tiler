@@ -1,5 +1,5 @@
 import { FeatureWrapper } from './feature-wrapper';
-import { TileFeature } from './geojson-vt/types';
+import { TileFeature } from '../geojson-vt/types';
 
 export class TileWrapper {
    options = {};

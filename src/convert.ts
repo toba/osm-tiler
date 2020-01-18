@@ -1,35 +1,10 @@
 import { forEach } from '@toba/tools';
 import { Point, PointList } from './types';
 
-export interface ConversionOptions {
-   /** Maximum zoom (`0-24`) to preserve detail on */
-   maxZoom: number;
-   /** Simplification tolerance (higher means simpler) */
-   tolerance: number;
-   /** Tile extent */
-   extent: number;
-   /** Tile buffer on each side */
-   buffer: number;
-   /** Name of a feature property to be promoted to `feature.id` */
-   promoteID?: string;
-   /** Whether to generate feature IDs. Cannot be used with `promoteID`. */
-   generateID: boolean;
-   /** Whether to calculate line metrics */
-   lineMetrics: boolean;
-   /** Maximum zoom in the tile index */
-   indexMaxZoom: number;
-   /** Maximum number of points per tile in the tile index */
-   indexMaxPoints: number;
-}
-
 /**
  * Create a unique ID based on tile coordinate.
  */
 const tileID = (z: number, x: number, y: number) => ((1 << z) * y + x) * 32 + z;
-
-function convertPoint(coords: Point, out: PointList) {
-   out.push(projectX(coords[0]), projectY(coords[1]), 0);
-}
 
 /**
  * @param tolerance Simplification tolerance based on zoom level and extent
@@ -49,8 +24,8 @@ function convertLine(
    let size = 0;
 
    forEach(line, (point, i) => {
-      const x = projectX(point[0]);
-      const y = projectY(point[1]);
+      const x = point[0];
+      const y = point[1];
 
       out.push(x, y, 0);
 

@@ -21,7 +21,7 @@ const emptyFeature: VectorFeature = {
    geometry: []
 };
 
-function writeProperties(context: Context, pbf: ProtocolBuffer) {
+function encodeProperties(context: Context, pbf: ProtocolBuffer) {
    const feature = context.feature;
    const keys = context.keys;
    const values = context.values;
@@ -74,7 +74,7 @@ const zigzag = (num: number): number => (num << 1) ^ (num >> 31);
 /**
  * @see https://github.com/mapbox/vector-tile-spec/tree/master/2.1#434-geometry-types
  */
-function writeGeometry(feature: VectorFeature, pbf: ProtocolBuffer) {
+function encodeGeometry(feature: VectorFeature, pbf: ProtocolBuffer) {
    const geometry = feature.geometry;
    const type = feature.type;
    let x = 0;
@@ -108,19 +108,19 @@ function writeGeometry(feature: VectorFeature, pbf: ProtocolBuffer) {
    });
 }
 
-function writeFeature(context: Context, pbf: ProtocolBuffer) {
+function encodeFeature(context: Context, pbf: ProtocolBuffer) {
    const feature = context.feature;
 
    if (feature.id !== undefined) {
       pbf.writeVarintField(1, feature.id);
    }
 
-   pbf.writeMessage(2, writeProperties, context);
+   pbf.writeMessage(2, encodeProperties, context);
    pbf.writeVarintField(3, feature.type);
-   pbf.writeMessage(4, writeGeometry, feature);
+   pbf.writeMessage(4, encodeGeometry, feature);
 }
 
-function writeValue(value: string | boolean | number, pbf: ProtocolBuffer) {
+function encodeValue(value: string | boolean | number, pbf: ProtocolBuffer) {
    const type = typeof value;
    if (type === 'string') {
       pbf.writeStringField(1, value as string);
@@ -139,7 +139,7 @@ function writeValue(value: string | boolean | number, pbf: ProtocolBuffer) {
    }
 }
 
-function writeLayer(layer: VectorLayer, pbf: ProtocolBuffer) {
+function encodeLayer(layer: VectorLayer, pbf: ProtocolBuffer) {
    pbf.writeVarintField(15, layer.version ?? 1);
    pbf.writeStringField(1, layer.name ?? '');
    pbf.writeVarintField(5, layer.extent ?? 4096);
@@ -154,41 +154,14 @@ function writeLayer(layer: VectorLayer, pbf: ProtocolBuffer) {
 
    forEach(layer.features, f => {
       context.feature = f;
-      pbf.writeMessage(2, writeFeature, context);
+      pbf.writeMessage(2, encodeFeature, context);
    });
    forEach(context.keys, k => pbf.writeStringField(3, k));
-   forEach(context.values, v => pbf.writeMessage(4, writeValue, v));
+   forEach(context.values, v => pbf.writeMessage(4, encodeValue, v));
 }
 
-function writeTile(tile: VectorTile, pbf: ProtocolBuffer) {
+export function encodeTile(tile: VectorTile, pbf: ProtocolBuffer) {
    Object.keys(tile.layers).forEach(key => {
-      pbf.writeMessage(3, writeLayer, tile.layers[key]);
+      pbf.writeMessage(3, encodeLayer, tile.layers[key]);
    });
 }
-
-/**
- * Serialize a vector-tile-js-created tile to pbf
- * @return uncompressed, pbf-serialized tile data
- */
-// function fromVectorTileJs(tile: VectorTile): Uint8Array {
-//    const out = new ProtocolBuffer();
-//    writeTile(tile, out);
-//    return out.finish();
-// }
-
-/**
- * Serialized a geojson-vt-created tile to pbf.
- * @return uncompressed, pbf-serialized tile data
- */
-// function fromGeojsonVt(layers: {[key:string]: Layer}, options: Options): Uint8Array {
-//    options = options || {};
-//    const l: {[key: string]: TileWrapper};
-
-//    Object.keys(layers).forEach(k => {
-//      l[k] = new TileWrapper(layers[k].features, options);
-//       l[k].name = k;
-//       l[k].version = options.version;
-//       l[k].extent = options.extent;
-//    }
-//    return fromVectorTileJs({ layers: l });
-// };
