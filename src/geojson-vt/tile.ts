@@ -42,7 +42,7 @@ function rewind(line: number[], clockwise: boolean) {
 
 function addLine(
    out: number[][],
-   geom: MemLine,
+   from: MemLine,
    tile: Tile,
    tolerance: number,
    isPolygon: boolean,
@@ -52,25 +52,25 @@ function addLine(
 
    if (
       tolerance > 0 &&
-      (geom.size ?? 0) < (isPolygon ? sqTolerance : tolerance)
+      (from.size ?? 0) < (isPolygon ? sqTolerance : tolerance)
    ) {
-      tile.numPoints += geom.length / 3
+      tile.numPoints += from.length / 3
       return
    }
 
-   const line: number[] = []
+   const points: number[] = []
 
-   eachPoint(geom, (x, y, z) => {
+   eachPoint(from, (x, y, z) => {
       if (tolerance === 0 || z > sqTolerance) {
          tile.numSimplified++
-         line.push(x, y)
+         points.push(x, y)
       }
       tile.numPoints++
    })
 
-   if (isPolygon) rewind(line, isOuter)
+   if (isPolygon) rewind(points, isOuter)
 
-   out.push(line)
+   out.push(points)
 }
 
 function addFeature(

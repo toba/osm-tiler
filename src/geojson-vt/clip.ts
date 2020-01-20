@@ -43,12 +43,12 @@ function intersectY(
    return t
 }
 
-function newSlice(line: MemLine) {
-   const slice: MemLine = []
-   slice.size = line.size
-   slice.start = line.start
-   slice.end = line.end
-   return slice
+function newSegment(line: MemLine) {
+   const l: MemLine = []
+   l.size = line.size
+   l.start = line.start
+   l.end = line.end
+   return l
 }
 
 function clipPoints(
@@ -82,7 +82,7 @@ function clipLine(
    isPolygon: boolean,
    trackMetrics: boolean
 ) {
-   let slice = newSlice(line)
+   let segment = newSegment(line)
    const intersect = axis === Axis.Horizontal ? intersectX : intersectY
    let len = line.start ?? 0
    let segLen = 0
@@ -106,39 +106,39 @@ function clipLine(
       if (a < k1) {
          // ——|-->  | (line enters the clip region from the left)
          if (b > k1) {
-            t = intersect(slice, ax, ay, bx, by, k1)
+            t = intersect(segment, ax, ay, bx, by, k1)
             if (trackMetrics) {
-               slice.start = len + segLen * t
+               segment.start = len + segLen * t
             }
          }
       } else if (a > k2) {
          // |  <--|—— (line enters the clip region from the right)
          if (b < k2) {
-            t = intersect(slice, ax, ay, bx, by, k2)
+            t = intersect(segment, ax, ay, bx, by, k2)
             if (trackMetrics) {
-               slice.start = len + segLen * t
+               segment.start = len + segLen * t
             }
          }
       } else {
-         addPoint(slice, ax, ay, az)
+         addPoint(segment, ax, ay, az)
       }
       if (b < k1 && a >= k1) {
          // <--|——  | or <--|———|—— (line exits the clip region on the left)
-         t = intersect(slice, ax, ay, bx, by, k1)
+         t = intersect(segment, ax, ay, bx, by, k1)
          exited = true
       }
       if (b > k2 && a <= k2) {
          // |  ——|--> or ——|———|--> (line exits the clip region on the right)
-         t = intersect(slice, ax, ay, bx, by, k2)
+         t = intersect(segment, ax, ay, bx, by, k2)
          exited = true
       }
 
       if (!isPolygon && exited) {
          if (trackMetrics) {
-            slice.end = len + segLen * t
+            segment.end = len + segLen * t
          }
-         newLine.push(slice)
-         slice = newSlice(line)
+         newLine.push(segment)
+         segment = newSegment(line)
       }
 
       if (trackMetrics) len += segLen
@@ -149,22 +149,23 @@ function clipLine(
    const ax = line[last]
    const ay = line[last + 1]
    const az = line[last + 2]
-   const a = axis === 0 ? ax : ay
+   const a = axis === Axis.Horizontal ? ax : ay
 
-   if (a >= k1 && a <= k2) addPoint(slice, ax, ay, az)
+   if (a >= k1 && a <= k2) addPoint(segment, ax, ay, az)
 
    // close the polygon if its endpoints are not the same after clipping
-   last = slice.length - 3
+   last = segment.length - 3
+
    if (
       isPolygon &&
       last >= 3 &&
-      (slice[last] !== slice[0] || slice[last + 1] !== slice[1])
+      (segment[last] !== segment[0] || segment[last + 1] !== segment[1])
    ) {
-      addPoint(slice, slice[0], slice[1], slice[2])
+      addPoint(segment, segment[0], segment[1], segment[2])
    }
 
-   // add the final slice
-   if (slice.length > 0) newLine.push(slice)
+   // add the final segment
+   if (segment.length > 0) newLine.push(segment)
 }
 
 function clipLines(
@@ -175,9 +176,9 @@ function clipLines(
    axis: Axis,
    isPolygon: boolean
 ) {
-   forEach(lines, line => {
+   forEach(lines, line =>
       clipLine(line, newLines, k1, k2, axis, isPolygon, false)
-   })
+   )
 }
 
 /**

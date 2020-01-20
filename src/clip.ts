@@ -10,37 +10,35 @@ function addPoint(out: PointList, x: number, y: number, z: number) {
 }
 
 function intersectX(
-   out: number[],
+   out: PointList,
    ax: number,
    ay: number,
    bx: number,
    by: number,
-   x: number
+   edgeX: number
 ): number {
-   const t = (x - ax) / (bx - ax)
-   addPoint(out, x, ay + (by - ay) * t, 1)
+   const t = (edgeX - ax) / (bx - ax)
+   addPoint(out, edgeX, ay + (by - ay) * t, 1)
    return t
 }
 
 function intersectY(
-   out: number[],
+   out: PointList,
    ax: number,
    ay: number,
    bx: number,
    by: number,
-   y: number
+   edgeY: number
 ): number {
-   const t = (y - ay) / (by - ay)
-   addPoint(out, ax + (bx - ax) * t, y, 1)
+   const t = (edgeY - ay) / (by - ay)
+   addPoint(out, ax + (bx - ax) * t, edgeY, 1)
    return t
 }
 
-function newSlice(line: PointList) {
-   const slice: PointList = []
-   slice.size = line.size
-   slice.start = line.start
-   slice.end = line.end
-   return slice
+function newSegment(line: PointList): PointList {
+   const l: PointList = []
+   l.size = line.size
+   return l
 }
 
 function clipPoints(
@@ -73,7 +71,7 @@ function clipLine(
    axis: Axis,
    isPolygon: boolean
 ) {
-   let slice = newSlice(line)
+   let segment = newSegment(line)
    const intersect = axis === Axis.Horizontal ? intersectX : intersectY
 
    for (let i = 0; i < line.length - 3; i += 3) {
@@ -91,27 +89,28 @@ function clipLine(
 
       if (a < k1) {
          // ——|-->  | (line enters the clip region from the left)
-         if (b > k1) intersect(slice, ax, ay, bx, by, k1)
+         if (b > k1) intersect(segment, ax, ay, bx, by, k1)
       } else if (a > k2) {
          // |  <--|—— (line enters the clip region from the right)
-         if (b < k2) intersect(slice, ax, ay, bx, by, k2)
+         if (b < k2) intersect(segment, ax, ay, bx, by, k2)
       } else {
-         addPoint(slice, ax, ay, az)
+         addPoint(segment, ax, ay, az)
       }
+
       if (b < k1 && a >= k1) {
          // <--|——  | or <--|———|—— (line exits the clip region on the left)
-         intersect(slice, ax, ay, bx, by, k1)
+         intersect(segment, ax, ay, bx, by, k1)
          exited = true
       }
       if (b > k2 && a <= k2) {
          // |  ——|--> or ——|———|--> (line exits the clip region on the right)
-         intersect(slice, ax, ay, bx, by, k2)
+         intersect(segment, ax, ay, bx, by, k2)
          exited = true
       }
 
       if (!isPolygon && exited) {
-         newLine.push(slice)
-         slice = newSlice(line)
+         newLine.push(segment)
+         segment = newSegment(line)
       }
    }
 
@@ -120,23 +119,23 @@ function clipLine(
    const ax = line[last]
    const ay = line[last + 1]
    const az = line[last + 2]
-   const a = axis === 0 ? ax : ay
+   const a = axis === Axis.Horizontal ? ax : ay
 
-   if (a >= k1 && a <= k2) addPoint(slice, ax, ay, az)
+   if (a >= k1 && a <= k2) addPoint(segment, ax, ay, az)
 
    // close the polygon if its endpoints are not the same after clipping
-   last = slice.length - 3
+   last = segment.length - 3
 
    if (
       isPolygon &&
       last >= 3 &&
-      (slice[last] !== slice[0] || slice[last + 1] !== slice[1])
+      (segment[last] !== segment[0] || segment[last + 1] !== segment[1])
    ) {
-      addPoint(slice, slice[0], slice[1], slice[2])
+      addPoint(segment, segment[0], segment[1], segment[2])
    }
 
-   // add the final slice
-   if (slice.length > 0) newLine.push(slice)
+   // add the final segment
+   if (segment.length > 0) newLine.push(segment)
 }
 
 /**
@@ -167,15 +166,15 @@ function clipLines(
  */
 export function clip(
    tile: VectorTile,
-   scale: number,
+   zoom: number,
    k1: number,
    k2: number,
    axis: Axis,
    minAll: number,
    maxAll: number
 ): VectorTile | null {
-   k1 /= scale
-   k2 /= scale
+   k1 /= zoom
+   k2 /= zoom
 
    // all features within bounds — trivial accept
    if (minAll >= k1 && maxAll < k2) return tile
@@ -184,13 +183,11 @@ export function clip(
 
    /** Whether clipped region still has points */
    let hasPoints = false
-   const copy = copyTile(tile)
+   const copy = copyTile(tile, true)
 
    eachFeature(copy, f => {
-      /** Original geometry */
-      const from = f.geometry
-      const min = axis === Axis.Horizontal ? f.status.minX : f.status.minY
-      const max = axis === Axis.Horizontal ? f.status.maxX : f.status.maxY
+      const min = axis === Axis.Horizontal ? f.metrics.minX : f.metrics.minY
+      const max = axis === Axis.Horizontal ? f.metrics.maxX : f.metrics.maxY
 
       if (min >= k1 && max < k2) {
          // trivial accept
@@ -202,6 +199,8 @@ export function clip(
          return
       }
 
+      /** Original geometry */
+      const from = f.geometry
       const clipped: Geometry = []
 
       switch (f.type) {

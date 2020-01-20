@@ -1,13 +1,15 @@
-import { forEach } from '@toba/tools';
+import { forEach, forEachKeyValue } from '@toba/tools'
 import {
    VectorTile,
    VectorFeature,
    LayerMap,
-   TileStatus,
+   TileMetrics,
    Geometry,
    PointList,
-   FeatureStatus
-} from './types';
+   FeatureMetrics,
+   Properties,
+   Type
+} from './types'
 
 /**
  * Execute method for each feature in a tile, across all layers.
@@ -16,9 +18,9 @@ export function eachFeature(
    tile: VectorTile,
    fn: (f: VectorFeature, layeName: string) => void
 ) {
-   Object.keys(tile.layers).forEach(name => {
-      forEach(tile.layers[name].features, f => fn(f, name));
-   });
+   forEachKeyValue(tile.layers, (name, layer) => {
+      forEach(layer.features, f => fn(f, name))
+   })
 }
 
 export function eachPoint(
@@ -26,7 +28,7 @@ export function eachPoint(
    fn: (x: number, y: number, zoom: number) => void
 ) {
    for (let i = 0; i < line.length; i += 3) {
-      fn(line[i], line[i + 1], line[i + 2]);
+      fn(line[i], line[i + 1], line[i + 2])
    }
 }
 
@@ -34,9 +36,9 @@ export function eachPoint(
  * Create a unique ID based on tile coordinate.
  */
 export const tileID = (z: number, x: number, y: number) =>
-   ((1 << z) * y + x) * 32 + z;
+   ((1 << z) * y + x) * 32 + z
 
-export const emptyTileStatus = (x = 0, y = 0, z = 0): TileStatus => ({
+export const emptyTileMetrics = (x = 0, y = 0, z = 0): TileMetrics => ({
    pointCount: 0,
    simplifiedCount: 0,
    featureCount: 0,
@@ -48,49 +50,84 @@ export const emptyTileStatus = (x = 0, y = 0, z = 0): TileStatus => ({
    minY: 1,
    maxX: -1,
    maxY: 0
-});
+})
 
-export const emptyFeatureStatus = (geometry: Geometry): FeatureStatus => ({
-   pointCount: 0,
-   simplifiedCount: 0,
-   featureCount: 0,
+export const emptyFeatureMetrics = (
+   geometry: Geometry = [[]]
+): FeatureMetrics => ({
    minX: 2,
    minY: 1,
    maxX: -1,
    maxY: 0,
    geometry
-});
+})
 
-export function copyGeometry(g: Geometry): Geometry {
-   const out: Geometry = [];
-   forEach(g, line => out.push(line.slice()));
-   return out;
+export const emptyFeature = (): VectorFeature => ({
+   type: Type.Unknown,
+   geometry: [],
+   properties: new Object(null) as Properties,
+   metrics: emptyFeatureMetrics()
+})
+
+export function copyProperties(source: Properties): Properties {
+   const out = new Object(null) as Properties
+   forEachKeyValue(source, (key, value) => {
+      out[key] = value
+   })
+   return out
 }
 
-export const copyFeature = (f: VectorFeature): VectorFeature => ({
+export function copyGeometry(g: Geometry): Geometry {
+   const out: Geometry = []
+   forEach(g, line => out.push(line.slice()))
+   return out
+}
+
+export const copyFeature = (
+   f: VectorFeature,
+   includeGeometry = false
+): VectorFeature => ({
    id: f.id,
    type: f.type,
-   geometry: copyGeometry(f.geometry),
-   properties: f.properties,
-   status: emptyFeatureStatus(f.geometry)
-});
+   geometry: includeGeometry ? copyGeometry(f.geometry) : [],
+   properties: copyProperties(f.properties),
+   metrics: emptyFeatureMetrics(f.geometry)
+})
 
-export function copyLayers(layers: LayerMap): LayerMap {
-   const out: LayerMap = {};
-   Object.keys(layers).forEach(name => {
-      const l = layers[name];
+export const enum FeatureInclude {
+   Nothing,
+   Basic,
+   Geometry
+}
+
+export function copyLayers(
+   layers: LayerMap,
+   include = FeatureInclude.Basic
+): LayerMap {
+   const out = new Object(null) as LayerMap
+   forEachKeyValue(layers, (name, l) => {
       out[name] = {
          version: l.version,
          name,
          extent: l.extent,
-         features: l.features.map(copyFeature)
-      };
-   });
-   return out;
+         features:
+            include == FeatureInclude.Nothing
+               ? []
+               : l.features.map(f =>
+                    copyFeature(f, include == FeatureInclude.Geometry)
+                 )
+      }
+   })
+   return out
 }
 
-export const copyTile = (tile: VectorTile): VectorTile => ({
-   layers: copyLayers(tile.layers),
-   // TODO: copy status
-   status: emptyTileStatus()
-});
+export const copyTile = (
+   tile: VectorTile,
+   includeGeometry = false
+): VectorTile => ({
+   layers: copyLayers(
+      tile.layers,
+      includeGeometry ? FeatureInclude.Geometry : FeatureInclude.Basic
+   ),
+   metrics: emptyTileMetrics()
+})

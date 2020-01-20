@@ -4,15 +4,20 @@ import {
    Options,
    Axis,
    PointList,
-   Geometry,
    VectorFeature,
    Type
 } from './types'
-import { eachFeature, copyTile, tileID, eachPoint } from './tools'
+import {
+   eachFeature,
+   tileID,
+   eachPoint,
+   copyFeature,
+   copyLayers,
+   emptyTileMetrics
+} from './tools'
 import { clip } from './clip'
 
 const tileCache = new Map<number, VectorTile>()
-//const usedCoord = new Set<{ z: number; x: number; y: number }>();
 
 function rewind(line: PointList, clockwise: boolean) {
    let area = 0
@@ -35,8 +40,8 @@ function rewind(line: PointList, clockwise: boolean) {
 }
 
 function addLine(
-   out: number[][],
-   line: PointList,
+   out: PointList[],
+   from: PointList,
    tile: VectorTile,
    tolerance: number,
    isPolygon: boolean,
@@ -46,24 +51,23 @@ function addLine(
 
    if (
       tolerance > 0 &&
-      (line.size ?? 0) < (isPolygon ? sqTolerance : tolerance)
+      (from.size ?? 0) < (isPolygon ? sqTolerance : tolerance)
    ) {
-      tile.status.pointCount += line.length / 3
+      tile.metrics.pointCount += from.length / 3
       return
    }
 
    const points: PointList = []
-   points.dimensions = 2
 
-   eachPoint(line, (x, y, z) => {
+   eachPoint(from, (x, y, z) => {
       if (tolerance === 0 || z > sqTolerance) {
-         tile.status.simplifiedCount++
+         tile.metrics.simplifiedCount++
          points.push(x, y)
       }
-      tile.status.pointCount++
+      tile.metrics.pointCount++
    })
 
-   if (isPolygon) rewind(line, isOuter)
+   if (isPolygon) rewind(points, isOuter)
 
    out.push(points)
 }
@@ -71,34 +75,29 @@ function addLine(
 function addFeature(
    tile: VectorTile,
    feature: VectorFeature,
-   tolerance: number,
-   options: Options
+   layerName: string,
+   tolerance: number
 ) {
    const { type, geometry } = feature
-   const simplified: PointList = []
+   /** `x` and `y` without `z` */
+   const simplified: PointList[] = []
 
    switch (type) {
       case Type.Point:
-         eachPoint(geometry as MemLine, (x, y) => {
-            ;(simplified as number[]).push(x, y)
-            tile.numPoints++
-            tile.numSimplified++
+         simplified.push([])
+         eachPoint(geometry[0], (x, y) => {
+            simplified[0].push(x, y)
+            tile.metrics.pointCount++
+            tile.metrics.simplifiedCount++
          })
          break
       case Type.Line:
-         addLine(
-            simplified as TileLine,
-            geom as MemLine,
-            tile,
-            tolerance,
-            false,
-            false
-         )
+         addLine(simplified, geometry[0], tile, tolerance, false, false)
          break
       case Type.Polygon:
-         forEach(geom as MemPolygon, (line, i) =>
+         forEach(geometry, (line, i) =>
             addLine(
-               simplified as TileLine,
+               simplified,
                line,
                tile,
                tolerance,
@@ -112,38 +111,10 @@ function addFeature(
          break
    }
 
-   if (simplified.length > 0) {
-      let tags = feature.tags
-
-      if (type === Type.Line && options.lineMetrics) {
-         const line = geom as MemLine
-         const size = line.size!
-         tags = {}
-
-         if (feature.tags !== null) {
-            Object.keys(feature.tags).forEach((key: string) => {
-               tags![key] = feature.tags![key]
-            })
-         }
-         tags['mapbox_clip_start'] = line.start! / size
-         tags['mapbox_clip_end'] = line.end! / size
-      }
-
-      const tileFeature: TileFeature = {
-         geometry: simplified,
-         type:
-            type === Type.Polygon || type === Type.MultiPolygon
-               ? TileFeatureType.Polygon
-               : type === Type.Line || type === Type.MultiLine
-               ? TileFeatureType.Line
-               : TileFeatureType.Point,
-         tags
-      }
-
-      if (feature.id !== undefined) {
-         tileFeature.id = feature.id
-      }
-      tile.features.push(tileFeature)
+   if (simplified.length > 0 && simplified[0].length > 0) {
+      const f = copyFeature(feature, false)
+      f.geometry = simplified
+      tile.layers[layerName].features.push(f)
    }
 }
 
@@ -152,7 +123,7 @@ function addFeature(
  * to match.
  */
 export function createTile(
-   parent: VectorTile,
+   source: VectorTile,
    z: number,
    x: number,
    y: number,
@@ -163,24 +134,21 @@ export function createTile(
          ? 0
          : options.tolerance / ((1 << z) * options.extent)
 
-   const tile = copyTile(parent)
-   const status = tile.status
+   const tile: VectorTile = {
+      layers: copyLayers(source.layers),
+      metrics: emptyTileMetrics(x, y, z)
+   }
+   const metrics = tile.metrics
 
-   eachFeature(tile, f => {
-      const { minX, minY, maxX, maxY } = f.status
+   eachFeature(tile, (f, layerName) => {
+      addFeature(tile, f, layerName, tolerance)
 
-      if (minX < status.minX) {
-         status.minX = minX
-      }
-      if (minY < status.minY) {
-         status.minY = minY
-      }
-      if (maxX > status.maxX) {
-         status.maxX = maxX
-      }
-      if (maxY > status.maxY) {
-         status.maxY = maxY
-      }
+      const { minX, minY, maxX, maxY } = f.metrics
+
+      if (minX < metrics.minX) metrics.minX = minX
+      if (minY < metrics.minY) metrics.minY = minY
+      if (maxX > metrics.maxX) metrics.maxX = maxX
+      if (maxY > metrics.maxY) metrics.maxY = maxY
    })
 
    return tile
@@ -189,9 +157,8 @@ export function createTile(
 type StackItem = [VectorTile, number, number, number]
 
 /**
- * Split tiles into four sub-tiles, recursively. Splitting stops when maximum
- * zoom is reached or when the number of points is low as specified in the
- * options.
+ * Split tile into quadtiles, recursively. Splitting stops when maximum zoom is
+ * reached or when the number of points is low as specified in the options.
  *
  * Splitting is accomplished by duplicating the parent tile then clipping its
  * features to fit each of the child bounds.
@@ -201,9 +168,9 @@ type StackItem = [VectorTile, number, number, number]
 export function splitTile(
    parent: VectorTile,
    options: Options,
-   z: number,
-   x: number,
-   y: number
+   z = 0,
+   x = 0,
+   y = 0
 ) {
    const stack: StackItem[] = [[parent, z, x, y]]
    let next: VectorTile | null
@@ -211,6 +178,7 @@ export function splitTile(
    while (stack.length > 0) {
       ;[next, z, x, y] = stack.pop()!
 
+      /** Next zoom level */
       const z2 = 1 << z
       const id = tileID(z, x, y)
       let tile = tileCache.get(id)
@@ -218,12 +186,11 @@ export function splitTile(
       if (tile === undefined) {
          tile = createTile(next, z, x, y, options)
          tileCache.set(id, tile)
-         //usedCoord.add({ z, x, y });
       }
 
       if (
          z == options.maxTileZoom ||
-         tile.status.pointCount <= options.maxTilePoints ||
+         tile.metrics.pointCount <= options.maxTilePoints ||
          z == options.maxZoom
       ) {
          // stop splitting if max zoom is reached or tile is too simple to
@@ -231,16 +198,14 @@ export function splitTile(
          continue
       }
 
-      if (next.status.featureCount === 0) {
-         continue
-      }
+      if (next.metrics.featureCount === 0) continue
 
       // values used for clipping
       const k1 = (0.5 * options.buffer) / options.extent
       const k2 = 0.5 - k1
       const k3 = 0.5 + k1
       const k4 = 1 + k1
-      const { minX, minY, maxX, maxY } = tile.status
+      const { minX, minY, maxX, maxY } = tile.metrics
 
       /** Top left */
       let tl: VectorTile | null = null
@@ -268,10 +233,12 @@ export function splitTile(
          right = null
       }
 
-      stack.push(tl, z + 1, x * 2, y * 2)
-      stack.push(bl, z + 1, x * 2, y * 2 + 1)
-      stack.push(tr, z + 1, x * 2 + 1, y * 2)
-      stack.push(br, z + 1, x * 2 + 1, y * 2 + 1)
+      if (tl !== null) stack.push([tl, z + 1, x * 2, y * 2])
+      if (bl !== null) stack.push([bl, z + 1, x * 2, y * 2 + 1])
+      if (tr !== null) stack.push([tr, z + 1, x * 2 + 1, y * 2])
+      if (br !== null) stack.push([br, z + 1, x * 2 + 1, y * 2 + 1])
+
+      // TODO: mb source saves tile ID even when it has no features
    }
 
    return tileCache.values()

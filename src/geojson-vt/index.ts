@@ -1,10 +1,10 @@
-import { GeoJSON } from 'geojson';
-import { convert } from './convert';
-import { clip } from './clip';
-import { wrap } from './wrap';
-import { transformTile as transform } from './transform';
-import { createTile } from './tile';
-import { Options, Tile, LogLevel, Coordinate, MemFeature } from './types';
+import { GeoJSON } from 'geojson'
+import { convert } from './convert'
+import { clip } from './clip'
+import { wrap } from './wrap'
+import { transformTile as transform } from './transform'
+import { createTile } from './tile'
+import { Options, Tile, LogLevel, Coordinate, MemFeature } from './types'
 
 const defaultOptions: Options = {
    maxZoom: 14,
@@ -16,15 +16,15 @@ const defaultOptions: Options = {
    lineMetrics: false,
    generateID: false,
    debug: LogLevel.None
-};
+}
 
-type Hash = { [key: string]: any };
+type Hash = { [key: string]: any }
 
 /**
  * Create a unique ID based on tile coordinate.
  */
 export const toID = (z: number, x: number, y: number) =>
-   ((1 << z) * y + x) * 32 + z;
+   ((1 << z) * y + x) * 32 + z
 
 /**
  * Copy all values, without regard for `null` or `undefined`, from `src` to
@@ -32,60 +32,60 @@ export const toID = (z: number, x: number, y: number) =>
  */
 function extend(dest: Hash, src: Hash): Hash {
    Object.keys(src).forEach(key => {
-      dest[key] = src[key];
-   });
+      dest[key] = src[key]
+   })
 
-   return dest;
+   return dest
 }
 
 class GeoJSONVT {
-   options: Options = Object.create(defaultOptions);
-   tiles: { [key: string]: Tile };
-   tileCoords: Coordinate[];
-   total: number;
-   stats: { [key: string]: number };
+   options: Options = Object.create(defaultOptions)
+   tiles: { [key: string]: Tile }
+   tileCoords: Coordinate[]
+   total: number
+   stats: { [key: string]: number }
 
    constructor(data: GeoJSON, options: Partial<Options>) {
-      extend(this.options, options);
+      extend(this.options, options)
 
-      const debug = this.options.debug;
+      const debug = this.options.debug
 
       if (debug > LogLevel.None) {
-         console.time('preprocess data');
+         console.time('preprocess data')
       }
       if (this.options.maxZoom < 0 || this.options.maxZoom > 24) {
-         throw new Error('maxZoom should be in the 0-24 range');
+         throw new Error('maxZoom should be in the 0-24 range')
       }
       if (options.promoteID !== undefined && options.generateID) {
-         throw new Error('promoteId and generateId cannot be used together.');
+         throw new Error('promoteId and generateId cannot be used together.')
       }
 
       // projects and adds simplification info
-      let features = convert(data, this.options);
+      let features = convert(data, this.options)
 
       // tiles and tileCoords are part of the public API
-      this.tiles = {};
-      this.tileCoords = [];
+      this.tiles = {}
+      this.tileCoords = []
 
       if (debug > LogLevel.None) {
-         console.timeEnd('preprocess data');
+         console.timeEnd('preprocess data')
          console.log(
             'index: maxZoom: %d, maxPoints: %d',
             options.indexMaxZoom,
             options.indexMaxPoints
-         );
-         console.time('generate tiles');
+         )
+         console.time('generate tiles')
 
-         this.stats = {};
-         this.total = 0;
+         this.stats = {}
+         this.total = 0
       }
 
       // wraps features (ie extreme west and extreme east)
-      features = wrap(features, this.options);
+      features = wrap(features, this.options)
 
       // start slicing from the top tile down
       if (features.length > 0) {
-         this.splitTile(features, 0, 0, 0);
+         this.splitTile(features, 0, 0, 0)
       }
 
       if (debug > LogLevel.None) {
@@ -94,13 +94,9 @@ class GeoJSONVT {
                'features: %d, points: %d',
                this.tiles[0].numFeatures,
                this.tiles[0].numPoints
-            );
-         console.timeEnd('generate tiles');
-         console.log(
-            'tiles generated:',
-            this.total,
-            JSON.stringify(this.stats)
-         );
+            )
+         console.timeEnd('generate tiles')
+         console.log('tiles generated:', this.total, JSON.stringify(this.stats))
       }
    }
 
@@ -124,29 +120,29 @@ class GeoJSONVT {
       cx?: number,
       cy?: number
    ) {
-      const stack = [features, z, x, y];
-      const options = this.options;
-      const debug = options.debug;
+      const stack = [features, z, x, y]
+      const options = this.options
+      const debug = options.debug
 
       // avoid recursion by using a processing queue
       while (stack.length > 0) {
-         y = stack.pop() as number;
-         x = stack.pop() as number;
-         z = stack.pop() as number;
-         features = stack.pop() as MemFeature[];
+         y = stack.pop() as number
+         x = stack.pop() as number
+         z = stack.pop() as number
+         features = stack.pop() as MemFeature[]
 
-         const z2 = 1 << z;
-         const id = toID(z, x, y);
-         let tile = this.tiles[id];
+         const z2 = 1 << z
+         const id = toID(z, x, y)
+         let tile = this.tiles[id]
 
          if (tile === undefined) {
             if (debug > LogLevel.Basic) {
-               console.time('creation');
+               console.time('creation')
             }
 
-            tile = createTile(features, z, x, y, options);
-            this.tiles[id] = tile;
-            this.tileCoords.push({ z, x, y });
+            tile = createTile(features, z, x, y, options)
+            this.tiles[id] = tile
+            this.tileCoords.push({ z, x, y })
 
             if (debug > LogLevel.None) {
                if (debug > LogLevel.Basic) {
@@ -158,18 +154,18 @@ class GeoJSONVT {
                      tile.numFeatures,
                      tile.numPoints,
                      tile.numSimplified
-                  );
-                  console.timeEnd('creation');
+                  )
+                  console.timeEnd('creation')
                }
-               const key = `z${z}`;
-               this.stats[key] = (this.stats[key] || 0) + 1;
-               this.total++;
+               const key = `z${z}`
+               this.stats[key] = (this.stats[key] || 0) + 1
+               this.total++
             }
          }
 
          // save reference to original geometry in tile so that we can drill
          // down later if we stop now
-         tile.source = features;
+         tile.source = features
 
          // if it's the first-pass tiling
          if (cz === undefined) {
@@ -178,87 +174,80 @@ class GeoJSONVT {
                z === options.indexMaxZoom ||
                tile.numPoints <= options.indexMaxPoints
             ) {
-               continue;
+               continue
             }
             // if a drilldown to a specific tile
          } else if (z === options.maxZoom || z === cz) {
             // stop tiling if we reached base zoom or our target tile zoom
-            continue;
+            continue
          } else if (cz !== undefined && cx !== undefined && cy !== undefined) {
             // stop tiling if it's not an ancestor of the target tile
-            const zoomSteps = cz - z;
+            const zoomSteps = cz - z
             if (x !== cx >> zoomSteps || y !== cy >> zoomSteps) {
-               continue;
+               continue
             }
          }
 
          // if we slice further down, no need to keep source geometry
-         tile.source = undefined;
+         tile.source = undefined
 
-         if (features.length === 0) {
-            continue;
-         }
-
-         if (debug > LogLevel.Basic) {
-            console.time('clipping');
-         }
+         if (features.length === 0) continue
+         if (debug > LogLevel.Basic) console.time('clipping')
 
          // values we'll use for clipping
-         const k1 = (0.5 * options.buffer) / options.extent;
-         const k2 = 0.5 - k1;
-         const k3 = 0.5 + k1;
-         const k4 = 1 + k1;
+         const k1 = (0.5 * options.buffer) / options.extent
+         const k2 = 0.5 - k1
+         const k3 = 0.5 + k1
+         const k4 = 1 + k1
 
          /** Top left */
-         let tl = null;
+         let tl = null
          /** Bottom left */
-         let bl = null;
+         let bl = null
          /** Top right */
-         let tr = null;
+         let tr = null
          /** Bottom right */
-         let br = null;
+         let br = null
          // prettier-ignore
          let left = clip(features, z2, x - k1, x + k3, 0, tile.minX, tile.maxX,
             options
-         );
+         )
          // prettier-ignore
          let right = clip(features, z2, x + k2, x + k4, 0, tile.minX, tile.maxX,
             options
-         );
-         features = null;
+         )
+         features = null
 
          if (left !== null) {
             // prettier-ignore
             tl = clip(left, z2, y - k1, y + k3, 1, tile.minY, tile.maxY,
                options
-            );
+            )
             // prettier-ignore
             bl = clip(left, z2, y + k2, y + k4, 1, tile.minY, tile.maxY,
                options
-            );
-            left = null;
+            )
+            left = null
          }
 
          if (right !== null) {
             // prettier-ignore
             tr = clip(right, z2, y - k1, y + k3, 1, tile.minY, tile.maxY,
                options
-            );
+            )
             // prettier-ignore
             br = clip(right, z2, y + k2, y + k4, 1, tile.minY, tile.maxY,
                options
-            );
-            right = null;
+            )
+            right = null
          }
 
-         if (debug > LogLevel.Basic) {
-            console.timeEnd('clipping');
-         }
+         if (debug > LogLevel.Basic) console.timeEnd('clipping')
 
-         stack.push(tl ?? [], z + 1, x * 2, y * 2);
-         stack.push(bl ?? [], z + 1, x * 2, y * 2 + 1);
-         stack.push(tr ?? [], z + 1, x * 2 + 1, y * 2);
-         stack.push(br ?? [], z + 1, x * 2 + 1, y * 2 + 1);
+         stack.push(tl ?? [], z + 1, x * 2, y * 2)
+         stack.push(bl ?? [], z + 1, x * 2, y * 2 + 1)
+         stack.push(tr ?? [], z + 1, x * 2 + 1, y * 2)
+         stack.push(br ?? [], z + 1, x * 2 + 1, y * 2 + 1)
       }
    }
 
@@ -267,62 +256,58 @@ class GeoJSONVT {
     * @param z Zoom
     */
    getTile(z: number, x: number, y: number): Tile | null {
-      z = +z;
-      x = +x;
-      y = +y;
+      z = +z
+      x = +x
+      y = +y
 
-      const options = this.options;
-      const { extent, debug } = options;
+      const options = this.options
+      const { extent, debug } = options
 
       if (z < 0 || z > 24) {
-         return null;
+         return null
       }
 
-      const z2 = 1 << z;
-      x = (x + z2) & (z2 - 1); // wrap tile x coordinate
+      const z2 = 1 << z
+      x = (x + z2) & (z2 - 1) // wrap tile x coordinate
 
-      const id = toID(z, x, y);
+      const id = toID(z, x, y)
 
       if (this.tiles[id] !== undefined) {
-         return transform(this.tiles[id], extent);
+         return transform(this.tiles[id], extent)
       }
 
       if (debug > LogLevel.Basic) {
-         console.log('drilling down to z%d-%d-%d', z, x, y);
+         console.log('drilling down to z%d-%d-%d', z, x, y)
       }
 
-      let z0 = z;
-      let x0 = x;
-      let y0 = y;
-      let parent;
+      let z0 = z
+      let x0 = x
+      let y0 = y
+      let parent
 
       while (!parent && z0 > 0) {
-         z0--;
-         x0 >>= 1;
-         y0 >>= 1;
-         parent = this.tiles[toID(z0, x0, y0)];
+         z0--
+         x0 >>= 1
+         y0 >>= 1
+         parent = this.tiles[toID(z0, x0, y0)]
       }
 
-      if (!parent || !parent.source) {
-         return null;
-      }
+      if (!parent || !parent.source) return null
 
       // if we found a parent tile containing the original geometry, we can drill down from it
       if (debug > LogLevel.Basic) {
-         console.log('found parent tile z%d-%d-%d', z0, x0, y0);
-         console.time('drilling down');
+         console.log('found parent tile z%d-%d-%d', z0, x0, y0)
+         console.time('drilling down')
       }
-      this.splitTile(parent.source, z0, x0, y0, z, x, y);
+      this.splitTile(parent.source, z0, x0, y0, z, x, y)
 
-      if (debug > LogLevel.Basic) {
-         console.timeEnd('drilling down');
-      }
+      if (debug > LogLevel.Basic) console.timeEnd('drilling down')
 
       return this.tiles[id] !== undefined
          ? transform(this.tiles[id], extent)
-         : null;
+         : null
    }
 }
 
 export const geojsonvt = (data: GeoJSON, options: Partial<Options> = {}) =>
-   new GeoJSONVT(data, options);
+   new GeoJSONVT(data, options)
