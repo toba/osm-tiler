@@ -86,7 +86,7 @@ export interface FeatureMetrics extends Metrics {
    geometry: Geometry
 }
 
-export type Properties = { [key: string]: string | number }
+export type Properties = { [key: string]: string | number | boolean }
 
 export interface VectorFeature {
    id?: number

@@ -1,5 +1,5 @@
 import ProtocolBuffer from 'pbf'
-import { forEach, forEachKeyValue } from '@toba/tools'
+import { forEach, forEachKeyValue, ValueType } from '@toba/tools'
 import { Command, VectorFeature, VectorLayer, VectorTile, Type } from './types'
 import { emptyFeature } from './tools'
 
@@ -23,8 +23,9 @@ function encodeProperties(context: Context, pbf: ProtocolBuffer) {
    const keyCache = context.keyCache
    const valueCache = context.valueCache
 
-   Object.keys(feature.properties).forEach(key => {
+   forEachKeyValue(feature.properties, (key, value) => {
       let keyIndex = keyCache[key]
+
       if (typeof keyIndex === 'undefined') {
          keys.push(key)
          keyIndex = keys.length - 1
@@ -32,10 +33,13 @@ function encodeProperties(context: Context, pbf: ProtocolBuffer) {
       }
       pbf.writeVarint(keyIndex)
 
-      let value = feature.properties[key]
       const type = typeof value
 
-      if (type !== 'string' && type !== 'boolean' && type !== 'number') {
+      if (
+         type !== ValueType.String &&
+         type !== ValueType.Boolean &&
+         type !== ValueType.Number
+      ) {
          value = JSON.stringify(value)
       }
       const valueKey = type + ':' + value
