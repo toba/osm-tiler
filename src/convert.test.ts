@@ -1,5 +1,5 @@
 import { loadJSON } from './__mocks__'
-import { prepare } from './prepare'
+import { convert } from './convert'
 import { defaultOptions } from './index'
 
 const options = defaultOptions
@@ -10,6 +10,6 @@ beforeAll(async () => {
 })
 
 it('converts Overpass JSON response to intermediate tile', () => {
-   const tile = prepare(res, options)
+   const tile = convert(res, options)
    expect(tile).toBeDefined()
 })

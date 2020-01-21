@@ -127,7 +127,9 @@ export interface VectorTile {
 }
 
 /**
- * Indicates an axis: `0` for `x` or horizontal, `1` for `y` or vertical.
+ * Indicates an axis: `0` for `x` or horizontal, `1` for `y` or vertical. This
+ * is used in conjunction with a `PointList` that encodes the values in a single
+ * array so the point index `+ 0` is `x` and `+ 1` is `y`.
  */
 export const enum Axis {
    Horizontal,

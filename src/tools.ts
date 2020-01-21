@@ -121,6 +121,9 @@ export function copyLayers(
    return out
 }
 
+/**
+ * Copy tile layers but no metrics.
+ */
 export const copyTile = (
    tile: VectorTile,
    includeGeometry = false

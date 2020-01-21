@@ -38,6 +38,9 @@ function extend(dest: Hash, src: Hash): Hash {
    return dest
 }
 
+/**
+ * @see https://github.com/mapbox/geojson-vt/blob/master/src/index.js
+ */
 class GeoJSONVT {
    options: Options = Object.create(defaultOptions)
    tiles: { [key: string]: Tile }
@@ -84,9 +87,7 @@ class GeoJSONVT {
       features = wrap(features, this.options)
 
       // start slicing from the top tile down
-      if (features.length > 0) {
-         this.splitTile(features, 0, 0, 0)
-      }
+      if (features.length > 0) this.splitTile(features, 0, 0, 0)
 
       if (debug > LogLevel.None) {
          if (features.length > 0)

@@ -53,7 +53,7 @@ function newSegment(line: MemLine) {
 
 function clipPoints(
    points: MemLine,
-   newPoints: MemLine,
+   out: MemLine,
    k1: number,
    k2: number,
    axis: Axis
@@ -62,20 +62,20 @@ function clipPoints(
       const a = points[i + axis]
 
       if (a >= k1 && a <= k2) {
-         addPoint(newPoints, points[i], points[i + 1], points[i + 2])
+         addPoint(out, points[i], points[i + 1], points[i + 2])
       }
    }
 }
 
 /**
- * @param newLine Array of lines since original `line` may be sliced to fit
+ * @param out Array of lines since original `line` may be sliced to fit
  * boundaries
  * @param k1 Lower axis boundary
  * @param k2 Upper axis boundary
  */
 function clipLine(
    line: MemLine,
-   newLine: MemLine[],
+   out: MemLine[],
    k1: number,
    k2: number,
    axis: Axis,
@@ -137,7 +137,7 @@ function clipLine(
          if (trackMetrics) {
             segment.end = len + segLen * t
          }
-         newLine.push(segment)
+         out.push(segment)
          segment = newSegment(line)
       }
 
@@ -165,20 +165,18 @@ function clipLine(
    }
 
    // add the final segment
-   if (segment.length > 0) newLine.push(segment)
+   if (segment.length > 0) out.push(segment)
 }
 
 function clipLines(
    lines: MemLine[],
-   newLines: MemLine[],
+   out: MemLine[],
    k1: number,
    k2: number,
    axis: Axis,
    isPolygon: boolean
 ) {
-   forEach(lines, line =>
-      clipLine(line, newLines, k1, k2, axis, isPolygon, false)
-   )
+   forEach(lines, line => clipLine(line, out, k1, k2, axis, isPolygon, false))
 }
 
 /**

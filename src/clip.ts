@@ -3,12 +3,16 @@ import { Axis, PointList, VectorTile, Type, Geometry } from './types'
 import { eachFeature, copyTile } from './tools'
 
 /**
+ * Add point with zoom setting to `out` list.
  * @param z Zoom
  */
 function addPoint(out: PointList, x: number, y: number, z: number) {
    out.push(x, y, z)
 }
 
+/**
+ * Add point within segmment at boundary along X axis.
+ */
 function intersectX(
    out: PointList,
    ax: number,
@@ -22,6 +26,9 @@ function intersectX(
    return t
 }
 
+/**
+ * Add point within segment at boundary along Y axis.
+ */
 function intersectY(
    out: PointList,
    ax: number,
@@ -41,9 +48,12 @@ function newSegment(line: PointList): PointList {
    return l
 }
 
+/**
+ * Add `points` to `out` that fall within the `k1` to `k2` range.
+ */
 function clipPoints(
    points: PointList,
-   newPoints: PointList,
+   out: PointList,
    k1: number,
    k2: number,
    axis: Axis
@@ -52,20 +62,20 @@ function clipPoints(
       const a = points[i + axis]
 
       if (a >= k1 && a <= k2) {
-         addPoint(newPoints, points[i], points[i + 1], points[i + 2])
+         addPoint(out, points[i], points[i + 1], points[i + 2])
       }
    }
 }
 
 /**
- * @param newLine Array of lines since original `line` may be sliced to fit
+ * @param out Array of lines since original `line` may be sliced to fit
  * boundaries
  * @param k1 Lower axis boundary
  * @param k2 Upper axis boundary
  */
 function clipLine(
    line: PointList,
-   newLine: Geometry,
+   out: Geometry,
    k1: number,
    k2: number,
    axis: Axis,
@@ -109,7 +119,7 @@ function clipLine(
       }
 
       if (!isPolygon && exited) {
-         newLine.push(segment)
+         out.push(segment)
          segment = newSegment(line)
       }
    }
@@ -135,22 +145,22 @@ function clipLine(
    }
 
    // add the final segment
-   if (segment.length > 0) newLine.push(segment)
+   if (segment.length > 0) out.push(segment)
 }
 
 /**
  * @param isPolygon Whether lines should form a polygon, meaning start and end
  * points are equal
  */
-function clipLines(
+function clipPolygon(
    lines: PointList[],
-   newLines: PointList[],
+   out: PointList[],
    k1: number,
    k2: number,
    axis: Axis,
-   isPolygon: boolean
+   isPolygon = true
 ) {
-   forEach(lines, line => clipLine(line, newLines, k1, k2, axis, isPolygon))
+   forEach(lines, line => clipLine(line, out, k1, k2, axis, isPolygon))
 }
 
 /**
@@ -181,7 +191,7 @@ export function clip(
    // all features outside bounds — trivial reject
    if (maxAll < k1 || minAll >= k2) return null
 
-   /** Whether clipped region still has points */
+   /** Whether points exist within clipped region */
    let hasPoints = false
    const copy = copyTile(tile, true)
 
@@ -212,7 +222,7 @@ export function clip(
             clipLine(from[0], clipped, k1, k2, axis, false)
             break
          case Type.Polygon:
-            clipLines(from, clipped, k1, k2, axis, true)
+            clipPolygon(from, clipped, k1, k2, axis)
             break
          default:
             break

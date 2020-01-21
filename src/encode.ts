@@ -42,7 +42,7 @@ function encodeProperties(context: Context, pbf: ProtocolBuffer) {
       let valueIndex = valueCache[valueKey]
 
       if (typeof valueIndex === 'undefined') {
-         values.push(value)
+         values.push(String(value))
          valueIndex = values.length - 1
          valueCache[valueKey] = valueIndex
       }
@@ -89,8 +89,8 @@ function encodeGeometry(feature: VectorFeature, pbf: ProtocolBuffer) {
          if (i === 1 && type !== Type.Point) {
             pbf.writeVarint(command(Command.LineTo, pointCount - 1))
          }
-         const dx = line[i][0] - x
-         const dy = line[i][1] - y
+         const dx = line[i] - x
+         const dy = line[i + 1] - y
          pbf.writeVarint(zigzag(dx))
          pbf.writeVarint(zigzag(dy))
          x += dx

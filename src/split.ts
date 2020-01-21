@@ -122,7 +122,7 @@ function addFeature(
  * Create sub-tile at new zoom level and position and simplify its coordinates
  * to match.
  */
-export function createTile(
+export function createQuadTile(
    source: VectorTile,
    z: number,
    x: number,
@@ -184,7 +184,7 @@ export function splitTile(
       let tile = tileCache.get(id)
 
       if (tile === undefined) {
-         tile = createTile(next, z, x, y, options)
+         tile = createQuadTile(next, z, x, y, options)
          tileCache.set(id, tile)
       }
 
@@ -238,7 +238,7 @@ export function splitTile(
       if (tr !== null) stack.push([tr, z + 1, x * 2 + 1, y * 2])
       if (br !== null) stack.push([br, z + 1, x * 2 + 1, y * 2 + 1])
 
-      // TODO: mb source saves tile ID even when it has no features
+      // TODO: mb source saves tile ID even when it has no features — necessary?
    }
 
    return tileCache.values()

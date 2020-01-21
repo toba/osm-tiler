@@ -1,6 +1,6 @@
 import { OverpassResponse } from '@toba/osm-models'
 import ProtocolBuffer from 'pbf'
-import { prepare } from './prepare'
+import { convert } from './convert'
 import { encodeTile } from './encode'
 import { VectorTile, Options } from './types'
 import { splitTile } from './split'
@@ -21,7 +21,7 @@ export function process(res: OverpassResponse, options: Options): Uint8Array[] {
       ...defaultOptions,
       ...options
    }
-   const oneBigTile: VectorTile = prepare(res, options)
+   const oneBigTile: VectorTile = convert(res, options)
    const tiles = splitTile(oneBigTile, options)
    const out: Uint8Array[] = []
 

@@ -4,7 +4,15 @@
       {
          "label": "Test",
          "command": "./node_modules/.bin/jest",
-         "args": ["--verbose"],
+         "args": ["--verbose", "--testPathIgnorePatterns=[geojson-vt]"],
+         "type": "shell",
+         "group": "test",
+         "problemMatcher": []
+      },
+      {
+         "label": "Test GeoJSON-VT",
+         "command": "./node_modules/.bin/jest",
+         "args": ["--verbose", "--testPathPattern=geojson-vt"],
          "type": "shell",
          "group": "test",
          "problemMatcher": []
