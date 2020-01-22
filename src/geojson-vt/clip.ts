@@ -107,17 +107,13 @@ function clipLine(
          // ——|-->  | (line enters the clip region from the left)
          if (b > k1) {
             t = intersect(segment, ax, ay, bx, by, k1)
-            if (trackMetrics) {
-               segment.start = len + segLen * t
-            }
+            if (trackMetrics) segment.start = len + segLen * t
          }
       } else if (a > k2) {
          // |  <--|—— (line enters the clip region from the right)
          if (b < k2) {
             t = intersect(segment, ax, ay, bx, by, k2)
-            if (trackMetrics) {
-               segment.start = len + segLen * t
-            }
+            if (trackMetrics) segment.start = len + segLen * t
          }
       } else {
          addPoint(segment, ax, ay, az)
@@ -134,9 +130,7 @@ function clipLine(
       }
 
       if (!isPolygon && exited) {
-         if (trackMetrics) {
-            segment.end = len + segLen * t
-         }
+         if (trackMetrics) segment.end = len + segLen * t
          out.push(segment)
          segment = newSegment(line)
       }
@@ -194,7 +188,7 @@ function clipLines(
  */
 export function clip(
    features: MemFeature[],
-   scale: number,
+   zoom: number,
    k1: number,
    k2: number,
    axis: Axis,
@@ -202,17 +196,13 @@ export function clip(
    maxAll: number,
    options: Partial<Options>
 ): MemFeature[] | null {
-   k1 /= scale
-   k2 /= scale
+   k1 /= zoom
+   k2 /= zoom
 
-   if (minAll >= k1 && maxAll < k2) {
-      // all features within bounds — trivial accept
-      return features
-   }
-   if (maxAll < k1 || minAll >= k2) {
-      // all features outside bounds — trivial reject
-      return null
-   }
+   // all features within bounds — trivial accept
+   if (minAll >= k1 && maxAll < k2) return features
+   // all features outside bounds — trivial reject
+   if (maxAll < k1 || minAll >= k2) return null
 
    const clipped: MemFeature[] = []
 

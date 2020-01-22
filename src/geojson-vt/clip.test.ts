@@ -16,7 +16,10 @@ const makeLine = (geometry: number[]): MemFeature => ({
 const close = (line: number[]) => [line.concat(line.slice(0, 3))]
 
 // prettier-ignore
-const geom1 = [0,0,0,50,0,0,50,10,0,20,10,0,20,20,0,30,20,0,30,30,0,50,30,0,50,40,0,25,40,0,25,50,0,0,50,0,0,60,0,25,60,0];
+const geom1 = [
+   0,0,0,50,0,0,50,10,0,20,10,0,20,20,0,30,20,0,30,30,0,
+   50,30,0,50,40,0,25,40,0,25,50,0,0,50,0,0,60,0,25,60,0
+]
 const geom2 = [0, 0, 0, 50, 0, 0, 50, 10, 0, 0, 10, 0]
 
 const copy = (
@@ -138,11 +141,11 @@ it('clips polygons', () => {
    const out1 = copy(poly1, k1, 0, k2, 60, Type.Polygon, [[
       10,0,1,40,0,1,40,10,1,20,10,0,20,20,0,30,20,0,30,30,0,40,30,1,
       40,40,1,25,40,0,25,50,0,10,50,1,10,60,1,25,60,0,10,24,1,10,0,1
-   ]]);
+   ]])
    // prettier-ignore
    const out2 = copy(poly2, k1, 0, k2, 10, Type.Polygon, [[
       10,0,1,40,0,1,40,10,1,10,10,1,10,0,1
-   ]]);
+   ]])
 
    const clipped = clip([poly1, poly2], 1, k1, k2, a, -Infinity, Infinity, {})
 
@@ -175,7 +178,7 @@ test('clips points', () => {
    // prettier-ignore
    const out1 = copy(f1, 20, k1, 30, 60, Type.MultiPoint, [
       20,10,0,20,20,0,30,20,0,30,30,0,25,40,0,25,50,0,25,60,0
-   ]);
+   ])
 
    const clipped = clip([f1, f2], 1, k1, k2, a, -Infinity, Infinity, {})
 

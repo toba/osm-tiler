@@ -1,3 +1,4 @@
+import { forEachKeyValue } from '@toba/tools'
 import { GeoJSON } from 'geojson'
 import { convert } from './convert'
 import { clip } from './clip'
@@ -23,7 +24,7 @@ type Hash = { [key: string]: any }
 /**
  * Create a unique ID based on tile coordinate.
  */
-export const toID = (z: number, x: number, y: number) =>
+export const tileID = (z: number, x: number, y: number) =>
    ((1 << z) * y + x) * 32 + z
 
 /**
@@ -31,10 +32,9 @@ export const toID = (z: number, x: number, y: number) =>
  * `dest` and return `dest`.
  */
 function extend(dest: Hash, src: Hash): Hash {
-   Object.keys(src).forEach(key => {
-      dest[key] = src[key]
+   forEachKeyValue(src, (key, value) => {
+      dest[key] = value
    })
-
    return dest
 }
 
@@ -53,9 +53,8 @@ class GeoJSONVT {
 
       const debug = this.options.debug
 
-      if (debug > LogLevel.None) {
-         console.time('preprocess data')
-      }
+      if (debug > LogLevel.None) console.time('preprocess data')
+
       if (this.options.maxZoom < 0 || this.options.maxZoom > 24) {
          throw new Error('maxZoom should be in the 0-24 range')
       }
@@ -133,13 +132,11 @@ class GeoJSONVT {
          features = stack.pop() as MemFeature[]
 
          const z2 = 1 << z
-         const id = toID(z, x, y)
+         const id = tileID(z, x, y)
          let tile = this.tiles[id]
 
          if (tile === undefined) {
-            if (debug > LogLevel.Basic) {
-               console.time('creation')
-            }
+            if (debug > LogLevel.Basic) console.time('creation')
 
             tile = createTile(features, z, x, y, options)
             this.tiles[id] = tile
@@ -264,14 +261,12 @@ class GeoJSONVT {
       const options = this.options
       const { extent, debug } = options
 
-      if (z < 0 || z > 24) {
-         return null
-      }
+      if (z < 0 || z > 24) return null
 
       const z2 = 1 << z
       x = (x + z2) & (z2 - 1) // wrap tile x coordinate
 
-      const id = toID(z, x, y)
+      const id = tileID(z, x, y)
 
       if (this.tiles[id] !== undefined) {
          return transform(this.tiles[id], extent)
@@ -290,7 +285,7 @@ class GeoJSONVT {
          z0--
          x0 >>= 1
          y0 >>= 1
-         parent = this.tiles[toID(z0, x0, y0)]
+         parent = this.tiles[tileID(z0, x0, y0)]
       }
 
       if (!parent || !parent.source) return null

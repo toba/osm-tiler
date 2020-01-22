@@ -1,5 +1,4 @@
 import { GeoJsonProperties, GeoJsonTypes } from 'geojson'
-import { Line } from '../point'
 
 export type MemGeometry = MemLine | MemPolygon | MemPolygon[]
 
@@ -151,7 +150,7 @@ export interface VectorFeature {
    _keys: number
    _values: number
 
-   loadGeometry(): Line[]
+   loadGeometry(): number[][]
    bbox(): [number, number, number, number]
 }
 

@@ -1,3 +1,4 @@
+import '@toba/test'
 import { loadJSON } from './__mocks__'
 import { convert } from './convert'
 import { defaultOptions } from './index'
