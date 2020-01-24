@@ -250,7 +250,6 @@ class GeoJSONVT {
    }
 
    /**
-    *
     * @param z Zoom
     */
    getTile(z: number, x: number, y: number): Tile | null {
@@ -258,8 +257,7 @@ class GeoJSONVT {
       x = +x
       y = +y
 
-      const options = this.options
-      const { extent, debug } = options
+      const { extent, debug } = this.options
 
       if (z < 0 || z > 24) return null
 
