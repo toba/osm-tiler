@@ -1,5 +1,5 @@
 import { GeoJsonType as Type } from '@toba/map'
-import { forEach } from '@toba/node-tools'
+import { forEach, forEachKeyValue } from '@toba/node-tools'
 import {
    Options,
    MemFeature,
@@ -142,8 +142,8 @@ function addFeature(
          tags = {}
 
          if (feature.tags !== null) {
-            Object.keys(feature.tags).forEach((key: string) => {
-               tags![key] = feature.tags![key]
+            forEachKeyValue(feature.tags, (key, value) => {
+               tags![key] = value
             })
          }
          tags['mapbox_clip_start'] = line.start! / size
@@ -161,9 +161,8 @@ function addFeature(
          tags
       }
 
-      if (feature.id !== undefined) {
-         tileFeature.id = feature.id
-      }
+      if (feature.id !== undefined) tileFeature.id = feature.id
+
       tile.features.push(tileFeature)
    }
 }

@@ -156,7 +156,7 @@ class GeoJSONVT {
                   console.timeEnd('creation')
                }
                const key = `z${z}`
-               this.stats[key] = (this.stats[key] || 0) + 1
+               this.stats[key] = (this.stats[key] ?? 0) + 1
                this.total++
             }
          }

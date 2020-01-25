@@ -74,11 +74,15 @@ export interface Metrics {
 export interface TileMetrics extends Metrics {
    x: number
    y: number
+   /**
+    * Zoom
+    * @see https://wiki.openstreetmap.org/wiki/Zoom_levels
+    * @see https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Zoom_levels
+    */
    z: number
    complete: boolean
    pointCount: number
    featureCount: number
-   simplifiedCount: number
 }
 
 export interface FeatureMetrics extends Metrics {

@@ -21,4 +21,6 @@ This library relies extensively on open source work shared generously by MapBox,
 -  [mapbox/pbf](https://github.com/mapbox/pbf)
 -  [mapbox/geojson-vt](https://github.com/mapbox/geojson-vt)
 
+https://wiki.osgeo.org/wiki/Tile_Map_Service_Specification
+
 ## License

@@ -111,9 +111,8 @@ function convertFeature(
    options: Options,
    index?: number
 ) {
-   if (!geojson.geometry) {
-      return
-   }
+   if (!geojson.geometry) return
+
    const type = geojson.geometry.type
    const tolerance =
       (options.tolerance / ((1 << options.maxZoom) * options.extent)) ** 2

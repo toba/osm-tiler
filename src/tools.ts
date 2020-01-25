@@ -40,7 +40,7 @@ export const tileID = (z: number, x: number, y: number) =>
 
 export const emptyTileMetrics = (x = 0, y = 0, z = 0): TileMetrics => ({
    pointCount: 0,
-   simplifiedCount: 0,
+   //simplifiedCount: 0,
    featureCount: 0,
    x,
    y,

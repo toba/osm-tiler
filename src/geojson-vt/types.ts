@@ -92,7 +92,6 @@ export interface Tile {
    source?: MemFeature[]
    x: number
    y: number
-   /** Zoom */
    z: number
    /** Minimum `x` coordinate in the `features` */
    minX: number

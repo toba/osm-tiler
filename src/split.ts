@@ -60,10 +60,7 @@ function addLine(
    const points: PointList = []
 
    eachPoint(from, (x, y, z) => {
-      if (tolerance === 0 || z > sqTolerance) {
-         tile.metrics.simplifiedCount++
-         points.push(x, y)
-      }
+      if (tolerance === 0 || z > sqTolerance) points.push(x, y)
       tile.metrics.pointCount++
    })
 
@@ -88,7 +85,7 @@ function addFeature(
          eachPoint(geometry[0], (x, y) => {
             simplified[0].push(x, y)
             tile.metrics.pointCount++
-            tile.metrics.simplifiedCount++
+            //tile.metrics.simplifiedCount++
          })
          break
       case Type.Line:
@@ -232,6 +229,8 @@ export function splitTile(
          br = clip(right, z2, y + k2, y + k4, Axis.Vertical, minY, maxY)
          right = null
       }
+
+      // https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Subtiles
 
       if (tl !== null) stack.push([tl, z + 1, x * 2, y * 2])
       if (bl !== null) stack.push([bl, z + 1, x * 2, y * 2 + 1])
