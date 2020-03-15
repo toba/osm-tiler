@@ -262,12 +262,13 @@ class GeoJSONVT {
       if (z < 0 || z > 24) return null
 
       const z2 = 1 << z
+
       x = (x + z2) & (z2 - 1) // wrap tile x coordinate
 
       const id = tileID(z, x, y)
 
       if (this.tiles[id] !== undefined) {
-         return transform(this.tiles[id], extent)
+         return transform(this.tiles[id], extent) 
       }
 
       if (debug > LogLevel.Basic) {
@@ -277,7 +278,7 @@ class GeoJSONVT {
       let z0 = z
       let x0 = x
       let y0 = y
-      let parent
+      let parent: Tile | undefined
 
       while (!parent && z0 > 0) {
          z0--

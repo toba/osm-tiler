@@ -26,9 +26,7 @@ function transformPoint(
  * mercator-projected space into (extent x extent) tile space.
  */
 export function transformTile(tile: Tile, extent: number): Tile {
-   if (tile.transformed) {
-      return tile
-   }
+   if (tile.transformed) return tile
 
    const z2 = 1 << tile.z
    const tx = tile.x
