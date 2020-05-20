@@ -78,12 +78,11 @@ function encodeGeometry(feature: VectorFeature, pbf: ProtocolBuffer) {
    let x = 0
    let y = 0
 
-   forEach(geometry, line => {
+   forEach(geometry, (line) => {
       let count = 1
 
-      if (type === Type.Point) {
-         count = line.length
-      }
+      if (type === Type.Point) count = line.length
+
       pbf.writeVarint(command(Command.MoveTo, count))
 
       // do not write polygon closing path as lineto
@@ -109,9 +108,7 @@ function encodeGeometry(feature: VectorFeature, pbf: ProtocolBuffer) {
 function encodeFeature(context: Context, pbf: ProtocolBuffer) {
    const feature = context.feature
 
-   if (feature.id !== undefined) {
-      pbf.writeVarintField(1, feature.id)
-   }
+   if (feature.id !== undefined) pbf.writeVarintField(1, feature.id)
 
    pbf.writeMessage(2, encodeProperties, context)
    pbf.writeVarintField(3, feature.type)
@@ -147,15 +144,15 @@ function encodeLayer(layer: VectorLayer, pbf: ProtocolBuffer) {
       values: [],
       keyCache: {},
       valueCache: {},
-      feature: emptyFeature()
+      feature: emptyFeature(),
    }
 
-   forEach(layer.features, f => {
+   forEach(layer.features, (f) => {
       context.feature = f
       pbf.writeMessage(2, encodeFeature, context)
    })
-   forEach(context.keys, k => pbf.writeStringField(3, k))
-   forEach(context.values, v => pbf.writeMessage(4, encodeValue, v))
+   forEach(context.keys, (k) => pbf.writeStringField(3, k))
+   forEach(context.values, (v) => pbf.writeMessage(4, encodeValue, v))
 }
 
 export function encodeTile(tile: VectorTile, pbf: ProtocolBuffer) {
