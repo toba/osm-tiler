@@ -1,3 +1,5 @@
+const fullGeoPrefix = '_fullGeom'
+
 const centerNode = (el: ProcessElement): OverpassNode => ({
    id: el.id,
    type: 'node',
@@ -98,7 +100,7 @@ function relationNodes(
          if (m.lat !== undefined) addNode(m.lat, m.lon!, m.ref)
       } else if (m.type == 'way') {
          if (m.geometry) {
-            m.ref = `_fullGeom${m.ref}`
+            m.ref = fullGeoPrefix + m.ref
             addWay(m.geometry, m.ref)
          }
       }
@@ -114,6 +116,83 @@ const hasGeometry = (rel: OverpassRelation): boolean =>
          (m.type == 'node' && m.lat !== undefined) ||
          (m.type == 'way' && m.geometry && m.geometry.length > 0)
    )
+
+function toGeoJSON(
+   nodes: OverpassNode[],
+   ways: OverpassWay[],
+   rels: OverpassRelation[]
+) {
+   const allNodes: Map<ElementID, OverpassNode> = new Map()
+   const allWays: Map<ElementID, OverpassWay> = new Map()
+   const allRels: Map<ElementID, OverpassRelation> = new Map()
+   const usedNodes: Set<ElementID> = new Set()
+   const poi: Set<ElementID> = new Set()
+   const poiNodes: OverpassNode[] = []
+
+   nodes.forEach((n) => {
+      allNodes.set(n.id, n)
+      // only if node has interesting tags:
+      poi.add(n.id)
+   })
+
+   rels.forEach((r) => {
+      if (Array.isArray(r.members)) {
+         r.members.forEach((m) => {
+            if (m.type == 'node') poi.add(m.ref)
+         })
+      }
+   })
+
+   ways.forEach((w) => {
+      allWays.set(w.id, w)
+      if (Array.isArray(w.nodes)) {
+         w.nodes.forEach((id, i) => {
+            if (typeof id === 'object') return
+            if (id !== undefined) {
+               usedNodes.add(id)
+               w.nodes[i] = allNodes.get(id)
+            }
+         })
+      }
+   })
+
+   allNodes.forEach((node, id) => {
+      if (!usedNodes.has(id) || poi.has(id)) poiNodes.push(node)
+   })
+
+   rels.forEach((r) => allRels.set(r.id, r))
+
+   const reference = {
+      node: {} as Record<number, ProcessMember[]>,
+      way: {} as Record<number, ProcessMember[]>,
+      relation: {} as Record<number, ProcessMember[]>,
+   }
+
+   allRels.forEach((rel, id) => {
+      if (!Array.isArray(rel.members)) return
+
+      rel.members.forEach((m) => {
+         const refType = m.type
+         let refID = m.ref
+
+         if (typeof refID !== 'number') {
+            refID = parseInt(refID.replace(fullGeoPrefix, ''), 10)
+         }
+
+         if (reference[refType] === undefined) return
+
+         if (reference[refType]![refID] === undefined) {
+            reference[refType][refID] = []
+         }
+
+         reference[refType][refID].push({
+            role: m.role,
+            rel: id,
+            reltags: rel.tags,
+         })
+      })
+   })
+}
 
 function parse(res: OverpassResponse) {
    const nodes: OverpassNode[] = []
@@ -153,4 +232,6 @@ function parse(res: OverpassResponse) {
             break
       }
    })
+
+   toGeoJSON(nodes, ways, rels)
 }

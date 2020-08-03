@@ -28,7 +28,7 @@ declare interface OverpassNode extends OverpassElement {
 
 declare interface OverpassWay extends ProcessElement {
    type: 'way'
-   nodes: (ElementID | undefined)[]
+   nodes: (ElementID | undefined | OverpassNode)[]
    geometry?: (OverpassNode | null)[] // added
    __isBoundsPlaceholder?: boolean // added
 }
@@ -53,4 +53,10 @@ declare interface Bounds {
    minlon: number
    maxlat: number
    maxlon: number
+}
+
+declare interface ProcessMember {
+   role: string
+   rel: ElementID
+   reltags: Record<string, string>
 }
