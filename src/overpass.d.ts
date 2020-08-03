@@ -12,28 +12,30 @@ declare interface OverpassElement {
    id: ElementID
 }
 
+declare interface ProcessElement extends OverpassElement {
+   center?: OverpassNode // added
+   bounds?: Bounds // added
+   tags: Record<string, string>
+}
+
 declare interface OverpassNode extends OverpassElement {
    type: 'node'
    lat: number
    lon: number
    tags?: Record<string, string>
-   __isCenterPlaceholder?: boolean
+   __isCenterPlaceholder?: boolean // added
 }
 
-declare interface OverpassWay extends OverpassElement {
+declare interface OverpassWay extends ProcessElement {
    type: 'way'
-   nodes: ElementID[]
-   tags: Record<string, string>
-   geometry?: (OverpassNode | null)[]
-   center?: OverpassNode
-   bounds?: Bounds
-   __isBoundsPlaceholder?: boolean
+   nodes: (ElementID | undefined)[]
+   geometry?: (OverpassNode | null)[] // added
+   __isBoundsPlaceholder?: boolean // added
 }
 
-declare interface OverpassRelation extends OverpassElement {
+declare interface OverpassRelation extends ProcessElement {
    type: 'relation'
-   nodes: number[]
-   tags: Record<string, string>
+   nodes: number[] // added
    members: OverpassMember[]
 }
 
@@ -41,6 +43,9 @@ declare interface OverpassMember {
    type: ElementType
    ref: ElementID
    role: string
+   lat?: number // added
+   lon?: number // added
+   geometry?: (OverpassNode | null)[] // added
 }
 
 declare interface Bounds {
